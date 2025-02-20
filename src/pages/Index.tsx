@@ -24,7 +24,7 @@ const Index = () => {
         {/* Order Status Table */}
         <div className="space-y-4">
           {/* Order Number and Track Button */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: '#FEF7CD' }}>
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-medium text-gray-900">Status do Pedido</h2>
               <span className="text-sm text-gray-500">#{123456789}</span>
