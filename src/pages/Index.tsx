@@ -21,60 +21,61 @@ const Index = () => {
 
         <Separator />
 
-        {/* Order Timeline */}
+        {/* Order Status Table */}
         <div className="space-y-4">
           <h2 className="text-lg font-medium text-gray-900">Status do Pedido</h2>
-          <div className="relative">
-            {/* Timeline Line */}
-            <div className="absolute left-[21px] top-4 h-[calc(100%-32px)] w-[2px] bg-emerald-200"></div>
-            
-            {/* Timeline Steps */}
-            <div className="space-y-6">
-              {/* Step 1: Order Placed */}
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-11 h-11 rounded-full bg-emerald-600 flex items-center justify-center">
-                  <ShoppingCart className="w-5 h-5 text-white" />
-                </div>
-                <div>
+          <table className="w-full border-collapse">
+            <tbody>
+              {/* Order Placed */}
+              <tr>
+                <td className="py-4 w-12">
+                  <div className="flex-shrink-0 w-11 h-11 rounded-full bg-emerald-600 flex items-center justify-center">
+                    <ShoppingCart className="w-5 h-5 text-white" />
+                  </div>
+                </td>
+                <td className="py-4 pl-4">
                   <h3 className="font-medium text-gray-900">Pedido Realizado</h3>
                   <p className="text-sm text-gray-500">21/03/2024 às 10:30</p>
-                </div>
-              </div>
-
-              {/* Step 2: Payment Approved */}
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-11 h-11 rounded-full bg-emerald-600 flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-white" />
-                </div>
-                <div>
+                </td>
+              </tr>
+              {/* Payment Approved */}
+              <tr>
+                <td className="py-4 w-12">
+                  <div className="flex-shrink-0 w-11 h-11 rounded-full bg-emerald-600 flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-white" />
+                  </div>
+                </td>
+                <td className="py-4 pl-4">
                   <h3 className="font-medium text-gray-900">Pagamento Aprovado</h3>
                   <p className="text-sm text-gray-500">21/03/2024 às 10:35</p>
-                </div>
-              </div>
-
-              {/* Step 3: Order Shipped */}
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-11 h-11 rounded-full bg-gray-200 flex items-center justify-center">
-                  <Package className="w-5 h-5 text-gray-400" />
-                </div>
-                <div>
+                </td>
+              </tr>
+              {/* Order Shipped */}
+              <tr>
+                <td className="py-4 w-12">
+                  <div className="flex-shrink-0 w-11 h-11 rounded-full bg-gray-200 flex items-center justify-center">
+                    <Package className="w-5 h-5 text-gray-400" />
+                  </div>
+                </td>
+                <td className="py-4 pl-4">
                   <h3 className="font-medium text-gray-400">Pedido Enviado</h3>
                   <p className="text-sm text-gray-400">Aguardando</p>
-                </div>
-              </div>
-
-              {/* Step 4: Order Delivered */}
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-11 h-11 rounded-full bg-gray-200 flex items-center justify-center">
-                  <Truck className="w-5 h-5 text-gray-400" />
-                </div>
-                <div>
+                </td>
+              </tr>
+              {/* Order Delivered */}
+              <tr>
+                <td className="py-4 w-12">
+                  <div className="flex-shrink-0 w-11 h-11 rounded-full bg-gray-200 flex items-center justify-center">
+                    <Truck className="w-5 h-5 text-gray-400" />
+                  </div>
+                </td>
+                <td className="py-4 pl-4">
                   <h3 className="font-medium text-gray-400">Pedido Entregue</h3>
                   <p className="text-sm text-gray-400">Aguardando</p>
-                </div>
-              </div>
-            </div>
-          </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         <Separator />
@@ -82,24 +83,30 @@ const Index = () => {
         {/* Transaction Details */}
         <div className="space-y-4">
           <h2 className="text-lg font-medium text-gray-900">Detalhes da Transação</h2>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-gray-500">ID do Pedido</p>
-              <p className="font-medium text-gray-900">#123456789</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Data</p>
-              <p className="font-medium text-gray-900">21/03/2024</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Método</p>
-              <p className="font-medium text-gray-900">Cartão de Crédito</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Valor</p>
-              <p className="font-medium text-gray-900">R$ 299,90</p>
-            </div>
-          </div>
+          <table className="w-full">
+            <tbody>
+              <tr>
+                <td className="py-2 w-1/2">
+                  <p className="text-gray-500">ID do Pedido</p>
+                  <p className="font-medium text-gray-900">#123456789</p>
+                </td>
+                <td className="py-2 w-1/2">
+                  <p className="text-gray-500">Data</p>
+                  <p className="font-medium text-gray-900">21/03/2024</p>
+                </td>
+              </tr>
+              <tr>
+                <td className="py-2">
+                  <p className="text-gray-500">Método</p>
+                  <p className="font-medium text-gray-900">Cartão de Crédito</p>
+                </td>
+                <td className="py-2">
+                  <p className="text-gray-500">Valor</p>
+                  <p className="font-medium text-gray-900">R$ 299,90</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         <Separator />
