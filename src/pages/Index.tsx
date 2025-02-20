@@ -1,5 +1,5 @@
 
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Package, ShoppingCart, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -16,6 +16,64 @@ const Index = () => {
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">Pagamento Aprovado</h1>
             <p className="text-gray-600 mt-2">Seu pagamento foi processado com sucesso</p>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Order Timeline */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-medium text-gray-900">Status do Pedido</h2>
+          <div className="relative">
+            {/* Timeline Line */}
+            <div className="absolute left-[21px] top-4 h-[calc(100%-32px)] w-[2px] bg-emerald-200"></div>
+            
+            {/* Timeline Steps */}
+            <div className="space-y-6">
+              {/* Step 1: Order Placed */}
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-11 h-11 rounded-full bg-emerald-600 flex items-center justify-center">
+                  <ShoppingCart className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-900">Pedido Realizado</h3>
+                  <p className="text-sm text-gray-500">21/03/2024 às 10:30</p>
+                </div>
+              </div>
+
+              {/* Step 2: Payment Approved */}
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-11 h-11 rounded-full bg-emerald-600 flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-900">Pagamento Aprovado</h3>
+                  <p className="text-sm text-gray-500">21/03/2024 às 10:35</p>
+                </div>
+              </div>
+
+              {/* Step 3: Order Shipped */}
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-11 h-11 rounded-full bg-gray-200 flex items-center justify-center">
+                  <Package className="w-5 h-5 text-gray-400" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-400">Pedido Enviado</h3>
+                  <p className="text-sm text-gray-400">Aguardando</p>
+                </div>
+              </div>
+
+              {/* Step 4: Order Delivered */}
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-11 h-11 rounded-full bg-gray-200 flex items-center justify-center">
+                  <Truck className="w-5 h-5 text-gray-400" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-400">Pedido Entregue</h3>
+                  <p className="text-sm text-gray-400">Aguardando</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
