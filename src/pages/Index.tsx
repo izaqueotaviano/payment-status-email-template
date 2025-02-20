@@ -1,5 +1,5 @@
 
-import { CheckCircle, Package, ShoppingCart, Truck } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -23,14 +23,27 @@ const Index = () => {
 
         {/* Order Status Table */}
         <div className="space-y-4">
-          <h2 className="text-lg font-medium text-gray-900">Status do Pedido</h2>
+          {/* Order Number and Track Button */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-medium text-gray-900">Status do Pedido</h2>
+              <span className="text-sm text-gray-500">#{123456789}</span>
+            </div>
+            <Button 
+              variant="outline" 
+              className="border-emerald-600 text-emerald-600 hover:bg-emerald-50"
+            >
+              Rastrear Pedido
+            </Button>
+          </div>
+          
           <table className="w-full border-collapse">
             <tbody>
               {/* Order Placed */}
               <tr>
                 <td className="py-4 w-12">
                   <div className="flex-shrink-0 w-11 h-11 rounded-full bg-emerald-600 flex items-center justify-center">
-                    <ShoppingCart className="w-5 h-5 text-white" />
+                    <CheckCircle className="w-5 h-5 text-white" />
                   </div>
                 </td>
                 <td className="py-4 pl-4">
@@ -54,7 +67,7 @@ const Index = () => {
               <tr>
                 <td className="py-4 w-12">
                   <div className="flex-shrink-0 w-11 h-11 rounded-full bg-gray-200 flex items-center justify-center">
-                    <Package className="w-5 h-5 text-gray-400" />
+                    <CheckCircle className="w-5 h-5 text-gray-400" />
                   </div>
                 </td>
                 <td className="py-4 pl-4">
@@ -66,7 +79,7 @@ const Index = () => {
               <tr>
                 <td className="py-4 w-12">
                   <div className="flex-shrink-0 w-11 h-11 rounded-full bg-gray-200 flex items-center justify-center">
-                    <Truck className="w-5 h-5 text-gray-400" />
+                    <CheckCircle className="w-5 h-5 text-gray-400" />
                   </div>
                 </td>
                 <td className="py-4 pl-4">
