@@ -1,143 +1,198 @@
 
 import { CheckCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-[600px] p-8 space-y-6 animate-fade-in">
-        {/* Header */}
-        <div className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full animate-success-bounce">
-            <CheckCircle className="w-8 h-8 text-emerald-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Pagamento Aprovado</h1>
-            <p className="text-gray-600 mt-2">Seu pagamento foi processado com sucesso</p>
-          </div>
-        </div>
+    <table width="100%" cellPadding="0" cellSpacing="0" style={{ backgroundColor: '#F9FAFB', minHeight: '100vh' }}>
+      <tr>
+        <td align="center" style={{ padding: '16px' }}>
+          <table width="600" cellPadding="0" cellSpacing="0" style={{ backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            {/* Header */}
+            <tr>
+              <td align="center" style={{ padding: '32px 32px 24px 32px' }}>
+                <table cellPadding="0" cellSpacing="0">
+                  <tr>
+                    <td align="center">
+                      <div style={{ width: '64px', height: '64px', backgroundColor: '#D1FAE5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <CheckCircle size={32} color="#059669" />
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="center" style={{ paddingTop: '16px' }}>
+                      <h1 style={{ margin: '0', fontSize: '24px', fontWeight: '600', color: '#111827' }}>Pagamento Aprovado</h1>
+                      <p style={{ margin: '8px 0 0', color: '#4B5563' }}>Seu pagamento foi processado com sucesso</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
 
-        <Separator />
+            {/* Separator */}
+            <tr>
+              <td style={{ borderTop: '1px solid #E5E7EB' }}></td>
+            </tr>
 
-        {/* Order Status Table */}
-        <div className="space-y-4">
-          {/* Order Number and Track Button */}
-          <div className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: '#FEF7CD' }}>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-medium text-gray-900">Status do Pedido</h2>
-              <span className="text-sm text-gray-500">#{123456789}</span>
-            </div>
-            <Button 
-              variant="outline" 
-              className="border-emerald-600 text-emerald-600 hover:bg-emerald-50"
-            >
-              Rastrear Pedido
-            </Button>
-          </div>
-          
-          <table className="w-full border-collapse">
-            <tbody>
-              {/* Order Placed */}
-              <tr>
-                <td className="py-4 w-12">
-                  <div className="flex-shrink-0 w-11 h-11 rounded-full bg-emerald-600 flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-white" />
-                  </div>
-                </td>
-                <td className="py-4 pl-4">
-                  <h3 className="font-medium text-gray-900">Pedido Realizado</h3>
-                  <p className="text-sm text-gray-500">21/03/2024 às 10:30</p>
-                </td>
-              </tr>
-              {/* Payment Approved */}
-              <tr>
-                <td className="py-4 w-12">
-                  <div className="flex-shrink-0 w-11 h-11 rounded-full bg-emerald-600 flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-white" />
-                  </div>
-                </td>
-                <td className="py-4 pl-4">
-                  <h3 className="font-medium text-gray-900">Pagamento Aprovado</h3>
-                  <p className="text-sm text-gray-500">21/03/2024 às 10:35</p>
-                </td>
-              </tr>
-              {/* Order Shipped */}
-              <tr>
-                <td className="py-4 w-12">
-                  <div className="flex-shrink-0 w-11 h-11 rounded-full bg-gray-200 flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-gray-400" />
-                  </div>
-                </td>
-                <td className="py-4 pl-4">
-                  <h3 className="font-medium text-gray-400">Pedido Enviado</h3>
-                  <p className="text-sm text-gray-400">Aguardando</p>
-                </td>
-              </tr>
-              {/* Order Delivered */}
-              <tr>
-                <td className="py-4 w-12">
-                  <div className="flex-shrink-0 w-11 h-11 rounded-full bg-gray-200 flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-gray-400" />
-                  </div>
-                </td>
-                <td className="py-4 pl-4">
-                  <h3 className="font-medium text-gray-400">Pedido Entregue</h3>
-                  <p className="text-sm text-gray-400">Aguardando</p>
-                </td>
-              </tr>
-            </tbody>
+            {/* Order Status */}
+            <tr>
+              <td style={{ padding: '24px 32px' }}>
+                <table width="100%" cellPadding="0" cellSpacing="0">
+                  {/* Order Number and Track Button */}
+                  <tr>
+                    <td>
+                      <table width="100%" cellPadding="16" cellSpacing="0" style={{ backgroundColor: '#FEF7CD', borderRadius: '8px' }}>
+                        <tr>
+                          <td>
+                            <table cellPadding="0" cellSpacing="0">
+                              <tr>
+                                <td style={{ fontSize: '18px', fontWeight: '500', color: '#111827' }}>Status do Pedido</td>
+                                <td style={{ paddingLeft: '8px', fontSize: '14px', color: '#6B7280' }}>#123456789</td>
+                              </tr>
+                            </table>
+                          </td>
+                          <td align="right">
+                            <button style={{ 
+                              padding: '8px 16px', 
+                              border: '1px solid #059669', 
+                              borderRadius: '6px', 
+                              backgroundColor: 'transparent',
+                              color: '#059669',
+                              cursor: 'pointer'
+                            }}>
+                              Rastrear Pedido
+                            </button>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  {/* Status Timeline */}
+                  <tr>
+                    <td style={{ paddingTop: '16px' }}>
+                      <table width="100%" cellPadding="0" cellSpacing="0">
+                        {/* Order Placed */}
+                        <tr>
+                          <td width="48" style={{ paddingTop: '16px', paddingBottom: '16px' }}>
+                            <div style={{ width: '44px', height: '44px', backgroundColor: '#059669', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <CheckCircle size={20} color="white" />
+                            </div>
+                          </td>
+                          <td style={{ paddingLeft: '16px' }}>
+                            <h3 style={{ margin: '0', fontWeight: '500', color: '#111827' }}>Pedido Realizado</h3>
+                            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#6B7280' }}>21/03/2024 às 10:30</p>
+                          </td>
+                        </tr>
+                        {/* Payment Approved */}
+                        <tr>
+                          <td width="48" style={{ paddingTop: '16px', paddingBottom: '16px' }}>
+                            <div style={{ width: '44px', height: '44px', backgroundColor: '#059669', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <CheckCircle size={20} color="white" />
+                            </div>
+                          </td>
+                          <td style={{ paddingLeft: '16px' }}>
+                            <h3 style={{ margin: '0', fontWeight: '500', color: '#111827' }}>Pagamento Aprovado</h3>
+                            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#6B7280' }}>21/03/2024 às 10:35</p>
+                          </td>
+                        </tr>
+                        {/* Order Shipped */}
+                        <tr>
+                          <td width="48" style={{ paddingTop: '16px', paddingBottom: '16px' }}>
+                            <div style={{ width: '44px', height: '44px', backgroundColor: '#E5E7EB', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <CheckCircle size={20} color="#9CA3AF" />
+                            </div>
+                          </td>
+                          <td style={{ paddingLeft: '16px' }}>
+                            <h3 style={{ margin: '0', fontWeight: '500', color: '#9CA3AF' }}>Pedido Enviado</h3>
+                            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#9CA3AF' }}>Aguardando</p>
+                          </td>
+                        </tr>
+                        {/* Order Delivered */}
+                        <tr>
+                          <td width="48" style={{ paddingTop: '16px', paddingBottom: '16px' }}>
+                            <div style={{ width: '44px', height: '44px', backgroundColor: '#E5E7EB', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <CheckCircle size={20} color="#9CA3AF" />
+                            </div>
+                          </td>
+                          <td style={{ paddingLeft: '16px' }}>
+                            <h3 style={{ margin: '0', fontWeight: '500', color: '#9CA3AF' }}>Pedido Entregue</h3>
+                            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#9CA3AF' }}>Aguardando</p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            {/* Separator */}
+            <tr>
+              <td style={{ borderTop: '1px solid #E5E7EB' }}></td>
+            </tr>
+
+            {/* Transaction Details */}
+            <tr>
+              <td style={{ padding: '24px 32px' }}>
+                <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: '500', color: '#111827' }}>Detalhes da Transação</h2>
+                <table width="100%" cellPadding="0" cellSpacing="0">
+                  <tr>
+                    <td width="50%" style={{ paddingTop: '8px', paddingBottom: '8px' }}>
+                      <p style={{ margin: '0', color: '#6B7280' }}>ID do Pedido</p>
+                      <p style={{ margin: '4px 0 0', fontWeight: '500', color: '#111827' }}>#123456789</p>
+                    </td>
+                    <td width="50%" style={{ paddingTop: '8px', paddingBottom: '8px' }}>
+                      <p style={{ margin: '0', color: '#6B7280' }}>Data</p>
+                      <p style={{ margin: '4px 0 0', fontWeight: '500', color: '#111827' }}>21/03/2024</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="50%" style={{ paddingTop: '8px', paddingBottom: '8px' }}>
+                      <p style={{ margin: '0', color: '#6B7280' }}>Método</p>
+                      <p style={{ margin: '4px 0 0', fontWeight: '500', color: '#111827' }}>Cartão de Crédito</p>
+                    </td>
+                    <td width="50%" style={{ paddingTop: '8px', paddingBottom: '8px' }}>
+                      <p style={{ margin: '0', color: '#6B7280' }}>Valor</p>
+                      <p style={{ margin: '4px 0 0', fontWeight: '500', color: '#111827' }}>R$ 299,90</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            {/* Separator */}
+            <tr>
+              <td style={{ borderTop: '1px solid #E5E7EB' }}></td>
+            </tr>
+
+            {/* Actions */}
+            <tr>
+              <td style={{ padding: '24px 32px' }}>
+                <button style={{ 
+                  width: '100%',
+                  padding: '12px',
+                  backgroundColor: '#059669',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}>
+                  Ver Detalhes do Pedido
+                </button>
+              </td>
+            </tr>
+
+            {/* Footer */}
+            <tr>
+              <td align="center" style={{ padding: '0 32px 32px' }}>
+                <p style={{ margin: '0', fontSize: '14px', color: '#6B7280' }}>Precisa de ajuda? Entre em contato com nosso suporte</p>
+                <p style={{ margin: '8px 0 0', fontSize: '14px', color: '#6B7280' }}>suporte@empresa.com.br | (11) 99999-9999</p>
+              </td>
+            </tr>
           </table>
-        </div>
-
-        <Separator />
-
-        {/* Transaction Details */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-medium text-gray-900">Detalhes da Transação</h2>
-          <table className="w-full">
-            <tbody>
-              <tr>
-                <td className="py-2 w-1/2">
-                  <p className="text-gray-500">ID do Pedido</p>
-                  <p className="font-medium text-gray-900">#123456789</p>
-                </td>
-                <td className="py-2 w-1/2">
-                  <p className="text-gray-500">Data</p>
-                  <p className="font-medium text-gray-900">21/03/2024</p>
-                </td>
-              </tr>
-              <tr>
-                <td className="py-2">
-                  <p className="text-gray-500">Método</p>
-                  <p className="font-medium text-gray-900">Cartão de Crédito</p>
-                </td>
-                <td className="py-2">
-                  <p className="text-gray-500">Valor</p>
-                  <p className="font-medium text-gray-900">R$ 299,90</p>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <Separator />
-
-        {/* Actions */}
-        <div className="space-y-4">
-          <Button className="w-full bg-emerald-600 hover:bg-emerald-700 transition-colors">
-            Ver Detalhes do Pedido
-          </Button>
-        </div>
-
-        {/* Footer */}
-        <div className="text-center text-sm text-gray-500 space-y-2">
-          <p>Precisa de ajuda? Entre em contato com nosso suporte</p>
-          <p>suporte@empresa.com.br | (11) 99999-9999</p>
-        </div>
-      </Card>
-    </div>
+        </td>
+      </tr>
+    </table>
   );
 };
 
