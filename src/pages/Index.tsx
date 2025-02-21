@@ -1,4 +1,3 @@
-
 import { CheckCircle } from "lucide-react";
 
 const Index = () => {
@@ -22,6 +21,103 @@ const Index = () => {
                     <td align="center" style={{ paddingTop: '16px' }}>
                       <h1 style={{ margin: '0', fontSize: '24px', fontWeight: '600', color: '#111827' }}>Pagamento Aprovado</h1>
                       <p style={{ margin: '8px 0 0', color: '#4B5563' }}>Seu pagamento foi processado com sucesso</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            {/* Separator */}
+            <tr>
+              <td style={{ borderTop: '1px solid #E5E7EB' }}></td>
+            </tr>
+
+            {/* Order Items */}
+            <tr>
+              <td style={{ padding: '24px 32px' }}>
+                <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: '500', color: '#111827' }}>Produtos do Pedido</h2>
+                <table width="100%" cellPadding="0" cellSpacing="0">
+                  {/* Product 1 */}
+                  <tr>
+                    <td style={{ paddingBottom: '16px' }}>
+                      <table width="100%" cellPadding="0" cellSpacing="0" style={{ borderBottom: '1px solid #E5E7EB' }}>
+                        <tr>
+                          <td width="80">
+                            <img src="https://placehold.co/80x80" alt="Produto 1" style={{ width: '80px', height: '80px', borderRadius: '4px', objectFit: 'cover' }} />
+                          </td>
+                          <td style={{ paddingLeft: '16px', verticalAlign: 'top' }}>
+                            <table cellPadding="0" cellSpacing="0">
+                              <tr>
+                                <td>
+                                  <p style={{ margin: '0', fontSize: '16px', fontWeight: '500', color: '#111827' }}>Camiseta Básica Preta</p>
+                                  <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#6B7280' }}>Tamanho: M | Cor: Preto</p>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td style={{ paddingTop: '8px' }}>
+                                  <table cellPadding="0" cellSpacing="0">
+                                    <tr>
+                                      <td style={{ fontSize: '14px', color: '#6B7280' }}>Quantidade: 1</td>
+                                      <td style={{ paddingLeft: '16px', fontSize: '16px', fontWeight: '500', color: '#111827' }}>R$ 79,90</td>
+                                    </tr>
+                                  </table>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  {/* Product 2 */}
+                  <tr>
+                    <td style={{ paddingBottom: '16px' }}>
+                      <table width="100%" cellPadding="0" cellSpacing="0" style={{ borderBottom: '1px solid #E5E7EB' }}>
+                        <tr>
+                          <td width="80">
+                            <img src="https://placehold.co/80x80" alt="Produto 2" style={{ width: '80px', height: '80px', borderRadius: '4px', objectFit: 'cover' }} />
+                          </td>
+                          <td style={{ paddingLeft: '16px', verticalAlign: 'top' }}>
+                            <table cellPadding="0" cellSpacing="0">
+                              <tr>
+                                <td>
+                                  <p style={{ margin: '0', fontSize: '16px', fontWeight: '500', color: '#111827' }}>Tênis Casual Branco</p>
+                                  <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#6B7280' }}>Tamanho: 42 | Cor: Branco</p>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td style={{ paddingTop: '8px' }}>
+                                  <table cellPadding="0" cellSpacing="0">
+                                    <tr>
+                                      <td style={{ fontSize: '14px', color: '#6B7280' }}>Quantidade: 1</td>
+                                      <td style={{ paddingLeft: '16px', fontSize: '16px', fontWeight: '500', color: '#111827' }}>R$ 220,00</td>
+                                    </tr>
+                                  </table>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  {/* Order Summary */}
+                  <tr>
+                    <td style={{ paddingTop: '16px' }}>
+                      <table width="100%" cellPadding="4" cellSpacing="0">
+                        <tr>
+                          <td style={{ color: '#6B7280' }}>Subtotal:</td>
+                          <td align="right" style={{ color: '#111827' }}>R$ 299,90</td>
+                        </tr>
+                        <tr>
+                          <td style={{ color: '#6B7280' }}>Frete:</td>
+                          <td align="right" style={{ color: '#111827' }}>Grátis</td>
+                        </tr>
+                        <tr>
+                          <td style={{ paddingTop: '8px', fontSize: '16px', fontWeight: '500', color: '#111827' }}>Total:</td>
+                          <td align="right" style={{ paddingTop: '8px', fontSize: '16px', fontWeight: '500', color: '#111827' }}>R$ 299,90</td>
+                        </tr>
+                      </table>
                     </td>
                   </tr>
                 </table>
