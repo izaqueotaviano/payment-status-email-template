@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Button
-import androidx.tv.material3.CircularProgressIndicator
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
@@ -72,7 +71,7 @@ fun SettingsScreen(
                         Text(text = "Limpar cache")
                     }
                     if (isClearingCache) {
-                        CircularProgressIndicator()
+                        Text(text = "Limpando...")
                     }
                 }
             }

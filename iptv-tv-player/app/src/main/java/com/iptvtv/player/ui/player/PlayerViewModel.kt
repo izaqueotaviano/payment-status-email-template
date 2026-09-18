@@ -65,6 +65,15 @@ class PlayerViewModel(
                             playChannel(fallback)
                         }
                     }
+                } else {
+                    // The list changed after we started (a resync, a hide/show, a reorder...) -
+                    // keep currentIndex pointing at whatever channel is actually on screen so
+                    // next()/previous() don't silently desync from it.
+                    val playingId = _currentChannel.value?.id
+                    if (playingId != null) {
+                        val newIndex = visible.indexOfFirst { it.id == playingId }
+                        if (newIndex >= 0) currentIndex = newIndex
+                    }
                 }
             }
         }

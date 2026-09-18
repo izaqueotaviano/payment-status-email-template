@@ -26,7 +26,6 @@ import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.TvLazyRow
 import androidx.tv.foundation.lazy.list.items
 import androidx.tv.material3.Button
-import androidx.tv.material3.CircularProgressIndicator
 import androidx.tv.material3.Text
 import com.iptvtv.player.domain.model.Channel
 import com.iptvtv.player.ui.channels.components.ChannelCard
@@ -83,7 +82,7 @@ fun ChannelListScreen(
                 modifier = Modifier.padding(start = 8.dp),
             ) {
                 if (isRefreshing) {
-                    CircularProgressIndicator()
+                    Text(text = "Atualizando...")
                 } else {
                     Text(text = "Atualizar")
                 }

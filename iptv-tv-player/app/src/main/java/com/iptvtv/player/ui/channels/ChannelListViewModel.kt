@@ -55,10 +55,10 @@ class ChannelListViewModel(
             visible = visible.filter { it.displayName.contains(query, ignoreCase = true) }
         }
         val sorted = visible.sortedBy { it.sortOrder }
-        if (favOnly) {
-            mapOf("Favoritos" to sorted)
-        } else {
-            sorted.groupBy { it.displayGroup }
+        when {
+            sorted.isEmpty() -> emptyMap()
+            favOnly -> mapOf("Favoritos" to sorted)
+            else -> sorted.groupBy { it.displayGroup }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 

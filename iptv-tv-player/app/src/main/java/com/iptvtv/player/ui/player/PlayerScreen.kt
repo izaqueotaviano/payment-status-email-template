@@ -64,7 +64,6 @@ fun PlayerScreen(
         modifier = Modifier
             .fillMaxSize()
             .focusRequester(focusRequester)
-            .focusable()
             .onKeyEvent { event ->
                 if (event.type == KeyEventType.KeyUp) {
                     when (event.key) {
@@ -85,7 +84,8 @@ fun PlayerScreen(
                 } else {
                     false
                 }
-            },
+            }
+            .focusable(),
     ) {
         AndroidView(
             factory = { ctx ->

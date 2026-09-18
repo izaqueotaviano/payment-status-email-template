@@ -16,7 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import androidx.tv.material3.CircularProgressIndicator
+import androidx.tv.material3.Text
 import com.iptvtv.player.di.AppContainer
 import com.iptvtv.player.di.AppViewModelFactory
 import com.iptvtv.player.ui.channels.ChannelListScreen
@@ -55,7 +55,7 @@ fun AppNavHost(container: AppContainer) {
     val destination = startDestination
     if (destination == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+            Text(text = "Carregando...")
         }
         return
     }

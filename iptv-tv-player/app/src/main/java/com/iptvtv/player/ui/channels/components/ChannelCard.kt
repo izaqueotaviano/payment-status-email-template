@@ -53,7 +53,6 @@ fun ChannelCard(
                 color = if (isFocused) Color.White else Color.DarkGray,
                 shape = RoundedCornerShape(8.dp),
             )
-            .focusable(interactionSource = interactionSource)
             .onKeyEvent { event ->
                 if (event.key != Key.DirectionCenter && event.key != Key.Enter) {
                     return@onKeyEvent false
@@ -67,7 +66,8 @@ fun ChannelCard(
                     }
                 }
                 true
-            },
+            }
+            .focusable(interactionSource = interactionSource),
         shape = RoundedCornerShape(8.dp),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {

@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.items
 import androidx.tv.material3.Button
-import androidx.tv.material3.CircularProgressIndicator
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
@@ -57,7 +56,7 @@ fun SourcesScreen(
             ) {
                 Text(text = "Fontes de canais", style = MaterialTheme.typography.headlineMedium)
                 if (isSyncing) {
-                    CircularProgressIndicator()
+                    Text(text = "Sincronizando...", style = MaterialTheme.typography.bodySmall)
                 }
             }
 
