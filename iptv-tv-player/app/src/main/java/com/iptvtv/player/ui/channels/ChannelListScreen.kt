@@ -83,7 +83,11 @@ fun ChannelListScreen(
     val syncError by viewModel.syncError.collectAsState()
     val defaultChannelId by viewModel.defaultChannelId.collectAsState()
 
+    val showHidden by viewModel.showHidden.collectAsState()
+    val hiddenCount by viewModel.hiddenCount.collectAsState()
+
     var dialogChannel by remember { mutableStateOf<Channel?>(null) }
+    var showManageDialog by remember { mutableStateOf(false) }
     var previewChannelId by remember { mutableStateOf<Long?>(null) }
 
     // Only fall back to the first channel before anything has been previewed. Falling back
@@ -191,6 +195,12 @@ fun ChannelListScreen(
                         onClick = { viewModel.refresh() },
                         enabled = !isRefreshing,
                         modifier = Modifier.padding(start = 12.dp),
+                    )
+
+                    PillButton(
+                        text = "Gerenciar",
+                        onClick = { showManageDialog = true },
+                        modifier = Modifier.padding(start = 10.dp),
                     )
 
                     Text(
@@ -302,6 +312,24 @@ fun ChannelListScreen(
                 }
             }
         }
+    }
+
+    if (showManageDialog) {
+        ManageChannelsDialog(
+            favoriteCount = allChannels.count { it.isFavorite },
+            hiddenCount = hiddenCount,
+            showHidden = showHidden,
+            onToggleShowHidden = { viewModel.showHidden.value = !showHidden },
+            onKeepOnlyFavorites = {
+                viewModel.keepOnlyFavorites()
+                showManageDialog = false
+            },
+            onShowAll = {
+                viewModel.showAllChannels()
+                showManageDialog = false
+            },
+            onDismiss = { showManageDialog = false },
+        )
     }
 
     liveDialogChannel?.let { channel ->

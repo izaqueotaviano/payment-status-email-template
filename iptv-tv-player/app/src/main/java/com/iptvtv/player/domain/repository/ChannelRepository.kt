@@ -22,6 +22,15 @@ interface ChannelRepository {
 
     suspend fun setHidden(channelId: Long, hidden: Boolean)
     suspend fun setFavorite(channelId: Long, favorite: Boolean)
+
+    /** Hides every non-favorite channel of [sourceId] - the way to trim a huge playlist. */
+    suspend fun hideNonFavorites(sourceId: Long)
+
+    /** Un-hides every channel of [sourceId]. */
+    suspend fun showAllChannels(sourceId: Long)
+
+    /** How many channels of [sourceId] are currently hidden. */
+    fun observeHiddenCount(sourceId: Long): Flow<Int>
     suspend fun rename(channelId: Long, newName: String)
     suspend fun regroup(channelId: Long, newGroup: String)
 

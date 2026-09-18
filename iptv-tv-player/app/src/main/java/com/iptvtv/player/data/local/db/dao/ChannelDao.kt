@@ -36,6 +36,16 @@ interface ChannelDao {
     @Query("UPDATE channels SET isFavorite = :favorite WHERE id = :id")
     suspend fun setFavorite(id: Long, favorite: Boolean)
 
+    /** Trims a big playlist down to the favorites in one write instead of one per channel. */
+    @Query("UPDATE channels SET isHidden = 1 WHERE sourceId = :sourceId AND isFavorite = 0")
+    suspend fun hideNonFavorites(sourceId: Long)
+
+    @Query("UPDATE channels SET isHidden = 0 WHERE sourceId = :sourceId")
+    suspend fun showAll(sourceId: Long)
+
+    @Query("SELECT COUNT(*) FROM channels WHERE sourceId = :sourceId AND isHidden = 1")
+    fun observeHiddenCount(sourceId: Long): Flow<Int>
+
     @Query("UPDATE channels SET displayName = :name WHERE id = :id")
     suspend fun rename(id: Long, name: String)
 

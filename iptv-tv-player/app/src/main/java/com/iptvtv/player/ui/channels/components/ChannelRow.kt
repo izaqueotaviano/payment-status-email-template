@@ -151,6 +151,16 @@ fun ChannelRow(
             )
         }
 
+        if (channel.isHidden) {
+            Text(
+                text = "OCULTO",
+                color = BrandMuted,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
+
         if (isDefault) {
             Box(
                 modifier = Modifier

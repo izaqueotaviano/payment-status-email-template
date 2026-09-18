@@ -58,6 +58,17 @@ class ChannelRepositoryImpl(private val dao: ChannelDao) : ChannelRepository {
         dao.setFavorite(channelId, favorite)
     }
 
+    override suspend fun hideNonFavorites(sourceId: Long) {
+        dao.hideNonFavorites(sourceId)
+    }
+
+    override suspend fun showAllChannels(sourceId: Long) {
+        dao.showAll(sourceId)
+    }
+
+    override fun observeHiddenCount(sourceId: Long): Flow<Int> =
+        dao.observeHiddenCount(sourceId)
+
     override suspend fun rename(channelId: Long, newName: String) {
         dao.rename(channelId, newName)
     }

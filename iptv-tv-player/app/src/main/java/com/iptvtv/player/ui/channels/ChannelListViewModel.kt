@@ -48,6 +48,14 @@ class ChannelListViewModel(
     /** The category chip currently applied, or null for "all categories". */
     val selectedGroup = MutableStateFlow<String?>(null)
 
+    /** Reveals hidden channels in the list so they can be restored. */
+    val showHidden = MutableStateFlow(false)
+
+    val hiddenCount: StateFlow<Int> = currentSourceId
+        .filterNotNull()
+        .flatMapLatest { sourceId -> channelRepository.observeHiddenCount(sourceId) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
     val groups: StateFlow<List<String>> = allChannels
         .map { channels -> channels.filterNot { it.isHidden }.map { it.displayGroup }.distinct().sorted() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -57,8 +65,9 @@ class ChannelListViewModel(
         searchQuery,
         favoritesOnly,
         selectedGroup,
-    ) { channels, query, favOnly, group ->
-        var visible = channels.filterNot { it.isHidden }
+        showHidden,
+    ) { channels, query, favOnly, group, withHidden ->
+        var visible = if (withHidden) channels else channels.filterNot { it.isHidden }
         if (favOnly) {
             visible = visible.filter { it.isFavorite }
         }
@@ -91,6 +100,17 @@ class ChannelListViewModel(
 
     fun toggleFavorite(c: Channel) {
         viewModelScope.launch { channelRepository.setFavorite(c.id, !c.isFavorite) }
+    }
+
+    /** Hides everything that is not a favorite - one write, however long the playlist is. */
+    fun keepOnlyFavorites() {
+        val sourceId = currentSourceId.value ?: return
+        viewModelScope.launch { channelRepository.hideNonFavorites(sourceId) }
+    }
+
+    fun showAllChannels() {
+        val sourceId = currentSourceId.value ?: return
+        viewModelScope.launch { channelRepository.showAllChannels(sourceId) }
     }
 
     fun toggleHidden(c: Channel) {
