@@ -81,7 +81,7 @@ fun SourcesScreen(
                 }
             } else {
                 TvLazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(sources, key = { it.id }) { source ->
+                    items(sources, key = { source: Source -> source.id }) { source: Source ->
                         val isActive = activeSourceId == source.id
                         Surface(
                             onClick = {

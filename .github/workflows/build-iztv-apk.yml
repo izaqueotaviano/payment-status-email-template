@@ -120,6 +120,12 @@ jobs:
         working-directory: iptv-tv-player
         run: chmod +x gradlew
 
+      - name: Diagnose kotlinx-serialization dependency resolution
+        working-directory: iptv-tv-player
+        run: |
+          ./gradlew :app:dependencies --configuration releaseRuntimeClasspath --no-daemon 2>&1 \
+            | grep -iE "kotlinx-serialization|retrofit2-kotlinx" || true
+
       - name: Build release APK
         working-directory: iptv-tv-player
         run: ./gradlew assembleRelease --no-daemon --stacktrace

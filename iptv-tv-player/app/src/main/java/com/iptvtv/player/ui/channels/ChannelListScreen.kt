@@ -108,7 +108,7 @@ fun ChannelListScreen(
                     }
                     item(key = "row_$group") {
                         TvLazyRow {
-                            items(channelsInGroup, key = { it.id }) { ch ->
+                            items(channelsInGroup, key = { ch: Channel -> ch.id }) { ch: Channel ->
                                 ChannelCard(
                                     channel = ch,
                                     isDefault = ch.id == defaultChannelId,
