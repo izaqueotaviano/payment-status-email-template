@@ -7,7 +7,7 @@ import com.iptvtv.player.domain.repository.ChannelRepository
 import com.iptvtv.player.domain.repository.SettingsRepository
 import com.iptvtv.player.domain.repository.SourceRepository
 import com.iptvtv.player.domain.usecase.SyncSourceUseCase
-import com.iptvtv.player.domain.usecase.SyncStage
+import com.iptvtv.player.domain.usecase.SyncProgress
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -96,8 +96,8 @@ class ChannelListViewModel(
     private val syncErrorFlow = MutableStateFlow<String?>(null)
     val syncError: StateFlow<String?> = syncErrorFlow
 
-    private val syncStageFlow = MutableStateFlow<SyncStage?>(null)
-    val syncStage: StateFlow<SyncStage?> = syncStageFlow
+    private val syncProgressFlow = MutableStateFlow<SyncProgress?>(null)
+    val syncProgress: StateFlow<SyncProgress?> = syncProgressFlow
 
     private var refreshJob: Job? = null
 
@@ -112,7 +112,7 @@ class ChannelListViewModel(
             try {
                 val source = sourceRepository.getSource(sourceId)
                 val result = if (source != null) {
-                    syncSourceUseCase(source) { stage -> syncStageFlow.value = stage }
+                    syncSourceUseCase(source) { progress -> syncProgressFlow.value = progress }
                 } else {
                     Result.success(0)
                 }
@@ -122,7 +122,7 @@ class ChannelListViewModel(
             } catch (error: Throwable) {
                 syncErrorFlow.value = error.message ?: "Falha ao sincronizar"
             } finally {
-                syncStageFlow.value = null
+                syncProgressFlow.value = null
                 isRefreshingFlow.value = false
             }
         }

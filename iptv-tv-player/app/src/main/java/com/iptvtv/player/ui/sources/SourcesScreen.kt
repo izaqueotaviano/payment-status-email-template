@@ -2,9 +2,6 @@ package com.iptvtv.player.ui.sources
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -38,7 +34,6 @@ import com.iptvtv.player.ui.components.NavRail
 import com.iptvtv.player.ui.components.NavSection
 import com.iptvtv.player.ui.components.PillButton
 import com.iptvtv.player.ui.components.SectionCard
-import com.iptvtv.player.ui.components.clickOnSelect
 import com.iptvtv.player.ui.theme.BrandAccent
 import com.iptvtv.player.ui.theme.BrandGradient
 import com.iptvtv.player.ui.theme.BrandMuted
@@ -64,6 +59,7 @@ fun SourcesScreen(
 ) {
     val sources by viewModel.sources.collectAsState()
     val activeSourceId by viewModel.activeSourceId.collectAsState()
+    val channelCounts by viewModel.channelCounts.collectAsState()
 
     AppBackground {
         Row(modifier = Modifier.fillMaxSize()) {
@@ -131,6 +127,7 @@ fun SourcesScreen(
                             SourceCard(
                                 source = source,
                                 isActive = activeSourceId == source.id,
+                                channelCount = channelCounts[source.id],
                                 onOpen = {
                                     viewModel.selectActive(source)
                                     onOpenChannelList(source.id)
@@ -146,16 +143,20 @@ fun SourcesScreen(
     }
 }
 
+/**
+ * A source row. The card itself is deliberately NOT focusable: Compose's directional search
+ * cannot move focus from a node into its own children, so a focusable card would swallow the
+ * remote and leave Editar and Excluir unreachable.
+ */
 @Composable
 private fun SourceCard(
     source: Source,
     isActive: Boolean,
+    channelCount: Int?,
     onOpen: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
     val shape = RoundedCornerShape(18.dp)
     val badgeBrush: Brush = if (isActive) BrandGradient else SolidColor(BrandSurfaceVariant)
 
@@ -163,18 +164,12 @@ private fun SourceCard(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (isFocused) BrandSurfaceVariant else BrandSurface.copy(alpha = 0.8f), shape)
+            .background(BrandSurface.copy(alpha = 0.8f), shape)
             .border(
-                width = if (isFocused || isActive) 2.dp else 1.dp,
-                color = when {
-                    isFocused -> Color.White
-                    isActive -> BrandPrimary
-                    else -> BrandOutline
-                },
+                width = if (isActive) 2.dp else 1.dp,
+                color = if (isActive) BrandPrimary else BrandOutline,
                 shape = shape,
             )
-            .clickOnSelect(onOpen)
-            .focusable(interactionSource = interactionSource)
             .padding(horizontal = 20.dp, vertical = 16.dp),
     ) {
         Box(
@@ -199,7 +194,16 @@ private fun SourceCard(
                 overflow = TextOverflow.Ellipsis,
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = sourceTypeLabel(source), color = BrandMuted, fontSize = 13.sp)
+                Text(
+                    text = when (channelCount) {
+                        null -> sourceTypeLabel(source)
+                        0 -> "${sourceTypeLabel(source)} · nenhum canal"
+                        1 -> "${sourceTypeLabel(source)} · 1 canal"
+                        else -> "${sourceTypeLabel(source)} · $channelCount canais"
+                    },
+                    color = BrandMuted,
+                    fontSize = 13.sp,
+                )
                 if (isActive) {
                     Text(
                         text = "· EM USO",
@@ -212,7 +216,8 @@ private fun SourceCard(
             }
         }
 
-        PillButton(text = "Editar", onClick = onEdit)
+        PillButton(text = "Abrir", onClick = onOpen, primary = true)
+        PillButton(text = "Editar", onClick = onEdit, modifier = Modifier.padding(start = 8.dp))
         PillButton(text = "Excluir", onClick = onDelete, modifier = Modifier.padding(start = 8.dp))
     }
 }

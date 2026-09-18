@@ -31,6 +31,12 @@ data class ChannelEntity(
     val syncStamp: Long = 0,
 )
 
+/** Row of the per-source channel count query. */
+data class SourceChannelCount(
+    val sourceId: Long,
+    val channelCount: Int,
+)
+
 fun ChannelEntity.toDomain(): Channel = Channel(
     id = id,
     sourceId = sourceId,

@@ -12,6 +12,9 @@ interface ChannelRepository {
     /** Ids of the visible channels of [sourceId], in display order. */
     fun observeVisibleChannelIds(sourceId: Long): Flow<List<Long>>
 
+    /** How many channels each source holds, keyed by source id. */
+    fun observeChannelCounts(): Flow<Map<Long, Int>>
+
     /**
      * Opens an import for [sourceId] and returns its stamp, to be handed to [writeSyncBatch] and
      * [finishSync].

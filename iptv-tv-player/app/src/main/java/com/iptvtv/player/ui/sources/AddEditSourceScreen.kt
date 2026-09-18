@@ -205,14 +205,28 @@ fun AddEditSourceScreen(
                 }
             }
 
-            val savingStage = (saveState as? SaveState.Saving)?.stage
-            if (savingStage != null) {
+            val progress = (saveState as? SaveState.Saving)?.progress
+            if (progress != null) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.width(680.dp),
                 ) {
-                    Text(text = savingStage.label, color = BrandOnSurface, fontSize = 15.sp)
-                    ProgressBar()
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = progress.label,
+                            color = BrandOnSurface,
+                            fontSize = 15.sp,
+                            modifier = Modifier.weight(1f),
+                        )
+                        progress.fraction?.let { fraction ->
+                            Text(
+                                text = "${(fraction * 100).toInt()}%",
+                                color = BrandOnSurface,
+                                fontSize = 15.sp,
+                            )
+                        }
+                    }
+                    ProgressBar(progress = progress.fraction)
                     Text(
                         text = "Listas grandes podem levar um tempo. Não feche o app.",
                         color = BrandMuted,

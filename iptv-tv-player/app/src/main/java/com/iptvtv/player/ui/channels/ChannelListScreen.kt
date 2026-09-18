@@ -82,7 +82,7 @@ fun ChannelListScreen(
     val allChannels by viewModel.allChannels.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val syncError by viewModel.syncError.collectAsState()
-    val syncStage by viewModel.syncStage.collectAsState()
+    val syncProgress by viewModel.syncProgress.collectAsState()
     val defaultChannelId by viewModel.defaultChannelId.collectAsState()
 
     val showHidden by viewModel.showHidden.collectAsState()
@@ -244,14 +244,28 @@ fun ChannelListScreen(
                     }
                 }
 
-                val stage = syncStage
-                if (stage != null) {
+                val progress = syncProgress
+                if (progress != null) {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                     ) {
-                        Text(text = stage.label, color = BrandOnSurface, fontSize = 13.sp)
-                        ProgressBar()
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = progress.label,
+                                color = BrandOnSurface,
+                                fontSize = 13.sp,
+                                modifier = Modifier.weight(1f),
+                            )
+                            progress.fraction?.let { fraction ->
+                                Text(
+                                    text = "${(fraction * 100).toInt()}%",
+                                    color = BrandOnSurface,
+                                    fontSize = 13.sp,
+                                )
+                            }
+                        }
+                        ProgressBar(progress = progress.fraction)
                     }
                 }
 
@@ -276,7 +290,8 @@ fun ChannelListScreen(
                         if (channels.isEmpty()) {
                             EmptyState(
                                 isRefreshing = isRefreshing,
-                                stageLabel = syncStage?.label,
+                                progressLabel = syncProgress?.label,
+                                progressFraction = syncProgress?.fraction,
                                 hasFilters = hasFilters,
                                 onClearFilters = clearFilters,
                                 onRefresh = { viewModel.refresh() },
@@ -374,7 +389,8 @@ fun ChannelListScreen(
 @Composable
 private fun EmptyState(
     isRefreshing: Boolean,
-    stageLabel: String?,
+    progressLabel: String?,
+    progressFraction: Float?,
     hasFilters: Boolean,
     onClearFilters: () -> Unit,
     onRefresh: () -> Unit,
@@ -383,7 +399,7 @@ private fun EmptyState(
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = stageLabel ?: if (isRefreshing) "Sincronizando canais..." else "Nenhum canal por aqui",
+                text = progressLabel ?: if (isRefreshing) "Sincronizando canais..." else "Nenhum canal por aqui",
                 color = BrandOnSurface,
                 fontSize = 19.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -399,7 +415,10 @@ private fun EmptyState(
                 modifier = Modifier.padding(top = 6.dp),
             )
             if (isRefreshing) {
-                ProgressBar(modifier = Modifier.width(280.dp).padding(top = 16.dp))
+                ProgressBar(
+                    modifier = Modifier.width(280.dp).padding(top = 16.dp),
+                    progress = progressFraction,
+                )
             }
             // Always composed: this button owns the focus while the list is empty, and a
             // focusable that disappears mid-sync leaves the remote with nothing to hold.

@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.iptvtv.player.domain.model.Source
 import com.iptvtv.player.domain.repository.SourceRepository
 import com.iptvtv.player.domain.usecase.SyncSourceUseCase
-import com.iptvtv.player.domain.usecase.SyncStage
+import com.iptvtv.player.domain.usecase.SyncProgress
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -14,8 +14,8 @@ import kotlinx.coroutines.launch
 sealed class SaveState {
     data object Idle : SaveState()
 
-    /** Saving is a multi-step import; [stage] is what it is doing right now. */
-    data class Saving(val stage: SyncStage) : SaveState()
+    /** Saving is a streaming import; [progress] is what it has actually done so far. */
+    data class Saving(val progress: SyncProgress) : SaveState()
 
     data class Success(val channelCount: Int) : SaveState()
     data class Error(val message: String) : SaveState()
@@ -40,7 +40,7 @@ class AddEditSourceViewModel(
 
     fun save(source: Source) {
         viewModelScope.launch {
-            _saveState.value = SaveState.Saving(SyncStage.Downloading)
+            _saveState.value = SaveState.Saving(SyncProgress())
             runCatching {
                 val resolved: Source = if (source.id == 0L) {
                     val newId = sourceRepository.addSource(source)
@@ -49,8 +49,8 @@ class AddEditSourceViewModel(
                     sourceRepository.updateSource(source)
                     source
                 }
-                syncSourceUseCase(resolved) { stage ->
-                    _saveState.value = SaveState.Saving(stage)
+                syncSourceUseCase(resolved) { progress ->
+                    _saveState.value = SaveState.Saving(progress)
                 }.getOrThrow()
             }.onSuccess { channelCount ->
                 _saveState.value = SaveState.Success(channelCount)

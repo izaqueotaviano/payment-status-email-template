@@ -219,15 +219,17 @@ fun SearchField(
 }
 
 /**
- * Indeterminate progress bar: a gradient block sweeping across a track.
+ * Progress bar.
  *
- * Driven by [withFrameMillis] rather than the animation APIs so it costs nothing beyond the
- * frames it draws, and an import of unknown length still looks alive.
+ * Pass the measured [progress] (0f..1f) to fill the track for real. Only when the server does
+ * not declare a size - so there is no honest percentage to show - is [progress] null, and the
+ * bar falls back to a sweeping block driven by [withFrameMillis].
  */
 @Composable
-fun ProgressBar(modifier: Modifier = Modifier) {
+fun ProgressBar(modifier: Modifier = Modifier, progress: Float? = null) {
     var phase by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(progress == null) {
+        if (progress != null) return@LaunchedEffect
         var firstFrame = 0L
         while (true) {
             withFrameMillis { frame ->
@@ -237,16 +239,28 @@ fun ProgressBar(modifier: Modifier = Modifier) {
         }
     }
 
-    Canvas(modifier = modifier.fillMaxWidth().height(4.dp)) {
+    Canvas(modifier = modifier.fillMaxWidth().height(6.dp)) {
         val radius = CornerRadius(size.height / 2f, size.height / 2f)
         drawRoundRect(color = BrandSurfaceVariant, cornerRadius = radius)
-        val blockWidth = size.width * 0.28f
-        drawRoundRect(
-            brush = BrandGradient,
-            topLeft = Offset(-blockWidth + phase * (size.width + blockWidth), 0f),
-            size = Size(blockWidth, size.height),
-            cornerRadius = radius,
-        )
+
+        if (progress != null) {
+            val filled = size.width * progress.coerceIn(0f, 1f)
+            if (filled > 0f) {
+                drawRoundRect(
+                    brush = BrandGradient,
+                    size = Size(filled, size.height),
+                    cornerRadius = radius,
+                )
+            }
+        } else {
+            val blockWidth = size.width * 0.28f
+            drawRoundRect(
+                brush = BrandGradient,
+                topLeft = Offset(-blockWidth + phase * (size.width + blockWidth), 0f),
+                size = Size(blockWidth, size.height),
+                cornerRadius = radius,
+            )
+        }
     }
 }
 

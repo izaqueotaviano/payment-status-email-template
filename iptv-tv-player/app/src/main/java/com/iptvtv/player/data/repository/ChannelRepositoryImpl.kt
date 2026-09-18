@@ -11,6 +11,7 @@ import com.iptvtv.player.domain.repository.ChannelRepository
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
@@ -29,6 +30,10 @@ class ChannelRepositoryImpl(
 
     override fun observeChannels(sourceId: Long): Flow<List<Channel>> =
         dao.observeForSource(sourceId)
+            // An import writes many batches, and Room re-runs this query after each one. Without
+            // conflating, the screen would re-map the whole table once per batch - the work grows
+            // with the square of the playlist and is what made importing crawl.
+            .conflate()
             .map { entities -> entities.map { it.toDomain() } }
             // Playlists reach tens of thousands of rows; mapping them is not main-thread work.
             .flowOn(Dispatchers.Default)
@@ -37,7 +42,13 @@ class ChannelRepositoryImpl(
         dao.getById(id)?.toDomain()
 
     override fun observeVisibleChannelIds(sourceId: Long): Flow<List<Long>> =
-        dao.observeVisibleIds(sourceId)
+        dao.observeVisibleIds(sourceId).conflate()
+
+    override fun observeChannelCounts(): Flow<Map<Long, Int>> =
+        dao.observeCountsBySource()
+            .conflate()
+            .map { rows -> rows.associate { it.sourceId to it.channelCount } }
+            .flowOn(Dispatchers.Default)
 
     /** Guards the per-source sortOrder counters, which batches advance one after another. */
     private val syncMutex = Mutex()

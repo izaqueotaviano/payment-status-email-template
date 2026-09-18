@@ -16,8 +16,13 @@ import com.iptvtv.player.domain.model.Source
  * the repository's sync merges that against any existing customization.
  */
 interface PlaylistImporter {
+    /**
+     * [onBytes] receives how much of the playlist has been read and how much the server declared
+     * in total (0 when it declared nothing), so callers can show measured progress.
+     */
     suspend fun fetchChannels(
         source: Source,
+        onBytes: (bytesRead: Long, totalBytes: Long) -> Unit = { _, _ -> },
         onBatch: suspend (List<Channel>) -> Unit,
     ): Result<Int>
 }

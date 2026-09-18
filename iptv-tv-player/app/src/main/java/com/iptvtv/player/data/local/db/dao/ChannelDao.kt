@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 import com.iptvtv.player.data.local.db.entities.ChannelEntity
+import com.iptvtv.player.data.local.db.entities.SourceChannelCount
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -38,6 +39,10 @@ interface ChannelDao {
 
     @Query("SELECT COUNT(*) FROM channels WHERE sourceId = :sourceId")
     suspend fun countForSource(sourceId: Long): Int
+
+    /** How many channels each source holds, for the sources screen. */
+    @Query("SELECT sourceId AS sourceId, COUNT(*) AS channelCount FROM channels GROUP BY sourceId")
+    fun observeCountsBySource(): Flow<List<SourceChannelCount>>
 
     /** Drops whatever the finished import did not stamp: the channels the provider removed. */
     @Query("DELETE FROM channels WHERE sourceId = :sourceId AND syncStamp != :stamp")
