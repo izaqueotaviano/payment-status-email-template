@@ -1,6 +1,12 @@
 name: Build iztv APK
 
 on:
+  push:
+    branches:
+      - claude/android-iptv-tv-app-d83xei
+    paths:
+      - 'iptv-tv-player/**'
+      - '.github/workflows/build-iztv-apk.yml'
   workflow_dispatch: {}
 
 permissions:
