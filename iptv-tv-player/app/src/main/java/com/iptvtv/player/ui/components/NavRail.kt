@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -44,6 +45,7 @@ fun NavRail(
     onSelect: (NavSection) -> Unit,
     modifier: Modifier = Modifier,
     favoritesActive: Boolean = false,
+    clock: String? = null,
 ) {
     Column(
         modifier = modifier
@@ -98,6 +100,17 @@ fun NavRail(
             onClick = { onSelect(NavSection.Settings) },
             icon = { color, iconModifier -> SlidersIcon(color = color, modifier = iconModifier) },
         )
+
+        if (clock != null) {
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = clock,
+                color = BrandMuted,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(start = 12.dp),
+            )
+        }
     }
 }
 

@@ -148,6 +148,7 @@ fun ChannelListScreen(
             NavRail(
                 selected = NavSection.Channels,
                 favoritesActive = favoritesOnly,
+                clock = clock,
                 onSelect = { section ->
                     when (section) {
                         NavSection.Channels -> viewModel.selectedGroup.value = null
@@ -180,6 +181,8 @@ fun ChannelListScreen(
                             },
                             color = BrandMuted,
                             fontSize = 14.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
 
@@ -187,7 +190,7 @@ fun ChannelListScreen(
                         value = query,
                         onValueChange = { viewModel.searchQuery.value = it },
                         placeholder = "Buscar canal",
-                        modifier = Modifier.width(280.dp),
+                        modifier = Modifier.width(250.dp),
                     )
 
                     PillButton(
@@ -201,14 +204,6 @@ fun ChannelListScreen(
                         text = "Gerenciar",
                         onClick = { showManageDialog = true },
                         modifier = Modifier.padding(start = 10.dp),
-                    )
-
-                    Text(
-                        text = clock,
-                        color = BrandOnSurface,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(start = 20.dp),
                     )
                 }
 
