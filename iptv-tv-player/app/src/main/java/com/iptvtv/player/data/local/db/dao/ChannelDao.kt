@@ -15,9 +15,6 @@ interface ChannelDao {
     @Query("SELECT * FROM channels WHERE id = :id")
     suspend fun getById(id: Long): ChannelEntity?
 
-    @Query("SELECT * FROM channels WHERE sourceId = :sourceId ORDER BY sortOrder")
-    suspend fun getAllForSourceOnce(sourceId: Long): List<ChannelEntity>
-
     /**
      * Just the ids, in order: all the player needs for previous/next. Observing full rows there
      * would mean a second complete copy of a playlist that can run to tens of thousands of
@@ -32,8 +29,19 @@ interface ChannelDao {
     @Update
     suspend fun updateAll(entities: List<ChannelEntity>)
 
-    @Query("DELETE FROM channels WHERE id IN (:ids)")
-    suspend fun deleteByIds(ids: List<Long>)
+    /** The rows of one import batch, so a merge never has to read the whole source at once. */
+    @Query("SELECT * FROM channels WHERE sourceId = :sourceId AND streamKey IN (:streamKeys)")
+    suspend fun getByStreamKeys(sourceId: Long, streamKeys: List<String>): List<ChannelEntity>
+
+    @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM channels WHERE sourceId = :sourceId")
+    suspend fun maxSortOrder(sourceId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM channels WHERE sourceId = :sourceId")
+    suspend fun countForSource(sourceId: Long): Int
+
+    /** Drops whatever the finished import did not stamp: the channels the provider removed. */
+    @Query("DELETE FROM channels WHERE sourceId = :sourceId AND syncStamp != :stamp")
+    suspend fun deleteStale(sourceId: Long, stamp: Long)
 
     @Query("DELETE FROM channels WHERE sourceId = :sourceId")
     suspend fun deleteForSource(sourceId: Long)

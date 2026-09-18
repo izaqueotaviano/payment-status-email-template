@@ -12,3 +12,7 @@
 -keep,includedescriptorclasses class com.iptvtv.player.data.remote.xtream.**$$serializer { *; }
 
 # Room entities accessed via reflection by generated code are already kept by Room's own rules.
+
+# Keep class and method names in release builds. The app reports its own crashes on screen
+# (Ajustes -> Último erro) and an obfuscated stack trace is useless there; shrinking still runs.
+-dontobfuscate

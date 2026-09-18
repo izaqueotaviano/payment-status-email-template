@@ -23,6 +23,12 @@ data class ChannelEntity(
     val sortOrder: Int,
     val isFavorite: Boolean,
     val isHidden: Boolean,
+    /**
+     * Stamp of the import that last saw this channel. Rows still carrying an older stamp when an
+     * import finishes are the ones the provider dropped, so they can be deleted with a single
+     * statement instead of collecting every id in memory.
+     */
+    val syncStamp: Long = 0,
 )
 
 fun ChannelEntity.toDomain(): Channel = Channel(

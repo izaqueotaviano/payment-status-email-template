@@ -23,17 +23,14 @@ object M3uParser {
 
     private val ATTRIBUTE_REGEX = Regex("""([A-Za-z0-9_-]+)="([^"]*)"""")
 
-    /** Convenience overload for callers that already hold the whole playlist as a [String]. */
-    fun parse(content: String): List<ParsedM3uEntry> = parse(content.lineSequence())
-
     /**
-     * Parses [lines] lazily so callers can feed a [Sequence] backed by a [java.io.BufferedReader]
-     * instead of materializing the whole playlist (which can be tens of MB) as a single [String]
-     * plus a duplicate line-by-line copy at the same time.
+     * Parses [lines] into a lazy sequence: an entry is produced as its lines are read, and
+     * nothing accumulates here.
+     *
+     * A provider playlist can carry hundreds of thousands of entries, so whoever consumes this
+     * decides what to keep - collecting them all into a list first is what exhausts the heap.
      */
-    fun parse(lines: Sequence<String>): List<ParsedM3uEntry> {
-        val entries = mutableListOf<ParsedM3uEntry>()
-
+    fun entries(lines: Sequence<String>): Sequence<ParsedM3uEntry> = sequence {
         var pendingName: String? = null
         var pendingLogo: String? = null
         var pendingGroup: String? = null
@@ -70,13 +67,13 @@ object M3uParser {
             // Non-comment line: this is a stream URL.
             val name = pendingName
             if (name != null) {
-                entries.add(
+                yield(
                     ParsedM3uEntry(
                         name = name,
                         logoUrl = pendingLogo,
                         groupTitle = pendingGroup,
                         streamUrl = line,
-                    )
+                    ),
                 )
                 pendingName = null
                 pendingLogo = null
@@ -84,7 +81,5 @@ object M3uParser {
             }
             // A stream URL with no preceding #EXTINF is not a valid entry; ignore it.
         }
-
-        return entries
     }
 }

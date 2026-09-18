@@ -13,18 +13,33 @@ interface ChannelRepository {
     fun observeVisibleChannelIds(sourceId: Long): Flow<List<Long>>
 
     /**
-     * Persists the result of a (re-)import for [sourceId].
+     * Opens an import for [sourceId] and returns its stamp, to be handed to [writeSyncBatch] and
+     * [finishSync].
      *
-     * Matches [freshChannels] against the existing rows by [Channel.streamKey]: for a match,
-     * originalName/originalGroup/logoUrl/streamUrl are refreshed but isFavorite, isHidden,
-     * displayName, displayGroup and sortOrder are preserved from the existing row. Channels
-     * with no match are appended (sortOrder continues after the current max). Existing rows
-     * whose streamKey is absent from [freshChannels] are deleted.
-     *
-     * Throws if [freshChannels] is empty rather than deleting everything, and applies the whole
-     * merge in a single transaction.
+     * An import is applied in batches rather than all at once: a provider playlist can carry
+     * hundreds of thousands of channels, and holding one - let alone the several copies a
+     * whole-list merge needs - is what exhausts the heap.
      */
-    suspend fun replaceChannelsForSource(sourceId: Long, freshChannels: List<Channel>)
+    suspend fun beginSync(sourceId: Long): Long
+
+    /**
+     * Merges one batch of freshly imported channels.
+     *
+     * Matches them against the existing rows by [Channel.streamKey]: for a match,
+     * originalName/originalGroup/logoUrl/streamUrl are refreshed but isFavorite, isHidden,
+     * displayName, displayGroup and sortOrder are preserved. Channels with no match are
+     * appended. Everything written is stamped with [stamp].
+     */
+    suspend fun writeSyncBatch(sourceId: Long, stamp: Long, batch: List<Channel>)
+
+    /**
+     * Closes the import: deletes the rows no batch stamped, i.e. the channels the provider
+     * dropped, and returns how many the source now has.
+     *
+     * Throws when [importedCount] is zero rather than deleting everything, since a provider
+     * answering with an error page parses to no channels.
+     */
+    suspend fun finishSync(sourceId: Long, stamp: Long, importedCount: Int): Int
 
     suspend fun setHidden(channelId: Long, hidden: Boolean)
     suspend fun setFavorite(channelId: Long, favorite: Boolean)

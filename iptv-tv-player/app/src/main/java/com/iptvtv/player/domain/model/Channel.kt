@@ -4,7 +4,7 @@ package com.iptvtv.player.domain.model
  * A single playable channel that belongs to a [Source].
  *
  * [streamKey] is the stable identity used to merge a fresh import into the existing list
- * (see [com.iptvtv.player.domain.repository.ChannelRepository.replaceChannelsForSource]):
+ * (see [com.iptvtv.player.domain.repository.ChannelRepository.writeSyncBatch]):
  * it is the Xtream stream id when available, otherwise the raw stream URL. Everything the
  * user customized (favorite, hidden, rename, regroup, order) survives a re-sync as long as
  * the channel's [streamKey] is still present in the new import.

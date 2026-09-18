@@ -13,12 +13,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
- * SQLite binds one variable per id in an `IN (...)` clause and caps them at 999 below API 31,
- * so bulk deletes have to be split.
+ * SQLite binds one variable per value in an `IN (...)` clause and caps them at 999 below API 31,
+ * so lookups by a batch of keys have to be split.
  */
-private const val DELETE_CHUNK = 900
+private const val QUERY_CHUNK = 900
 
 class ChannelRepositoryImpl(
     private val database: AppDatabase,
@@ -37,54 +39,70 @@ class ChannelRepositoryImpl(
     override fun observeVisibleChannelIds(sourceId: Long): Flow<List<Long>> =
         dao.observeVisibleIds(sourceId)
 
-    override suspend fun replaceChannelsForSource(sourceId: Long, freshChannels: List<Channel>) {
-        if (freshChannels.isEmpty()) {
+    /** Guards the per-source sortOrder counters, which batches advance one after another. */
+    private val syncMutex = Mutex()
+    private val nextSortOrder = HashMap<Long, Int>()
+
+    override suspend fun beginSync(sourceId: Long): Long {
+        val startOrder = dao.maxSortOrder(sourceId) + 1
+        syncMutex.withLock { nextSortOrder[sourceId] = startOrder }
+        // Any value no earlier import used; the clock is enough and needs no extra bookkeeping.
+        return System.currentTimeMillis()
+    }
+
+    override suspend fun writeSyncBatch(sourceId: Long, stamp: Long, batch: List<Channel>) {
+        if (batch.isEmpty()) return
+
+        val keys = batch.map { it.streamKey }
+        // Chunked because SQLite binds one variable per value and caps them at 999 below API 31.
+        val existingByKey = keys.chunked(QUERY_CHUNK)
+            .flatMap { chunk -> dao.getByStreamKeys(sourceId, chunk) }
+            .associateBy { it.streamKey }
+
+        val toInsert = ArrayList<ChannelEntity>(batch.size)
+        val toUpdate = ArrayList<ChannelEntity>()
+
+        syncMutex.withLock {
+            var order = nextSortOrder[sourceId] ?: (dao.maxSortOrder(sourceId) + 1)
+            for (fresh in batch) {
+                val existing = existingByKey[fresh.streamKey]
+                if (existing != null) {
+                    toUpdate += existing.copy(
+                        originalName = fresh.originalName,
+                        logoUrl = fresh.logoUrl,
+                        streamUrl = fresh.streamUrl,
+                        originalGroup = fresh.originalGroup,
+                        syncStamp = stamp,
+                    )
+                } else {
+                    toInsert += fresh.toEntity().copy(
+                        id = 0,
+                        sourceId = sourceId,
+                        sortOrder = order++,
+                        syncStamp = stamp,
+                    )
+                }
+            }
+            nextSortOrder[sourceId] = order
+        }
+
+        database.withTransaction {
+            if (toUpdate.isNotEmpty()) dao.updateAll(toUpdate)
+            if (toInsert.isNotEmpty()) dao.insertAll(toInsert)
+        }
+    }
+
+    override suspend fun finishSync(sourceId: Long, stamp: Long, importedCount: Int): Int {
+        if (importedCount == 0) {
             // Providers answer with an HTML error or maintenance page under HTTP 200 often
             // enough that trusting an empty parse would mean wiping the list - and every
             // favorite, rename and hidden flag with it - on a routine refresh.
             throw IOException("A fonte não retornou nenhum canal.")
         }
-
-        val existing = dao.getAllForSourceOnce(sourceId)
-        val existingByKey = existing.associateBy { it.streamKey }
-        val freshKeys = freshChannels.map { it.streamKey }.toSet()
-        var nextOrder = (existing.maxOfOrNull { it.sortOrder } ?: -1) + 1
-
-        val toInsert = mutableListOf<ChannelEntity>()
-        val toUpdate = mutableListOf<ChannelEntity>()
-
-        for (fresh in freshChannels) {
-            val existingEntity = existingByKey[fresh.streamKey]
-            if (existingEntity != null) {
-                val refreshed = existingEntity.copy(
-                    originalName = fresh.originalName,
-                    logoUrl = fresh.logoUrl,
-                    streamUrl = fresh.streamUrl,
-                    originalGroup = fresh.originalGroup,
-                )
-                // Re-opening the list re-imports the same playlist; without this every row of it
-                // would be rewritten, and held in memory to be rewritten, on every single open.
-                if (refreshed != existingEntity) {
-                    toUpdate += refreshed
-                }
-            } else {
-                toInsert += fresh.toEntity().copy(
-                    id = 0,
-                    sourceId = sourceId,
-                    sortOrder = nextOrder++,
-                )
-            }
-        }
-
-        val toDeleteIds = existing.filter { it.streamKey !in freshKeys }.map { it.id }
-
-        // One transaction: a failure part-way through must not leave the source with half a
-        // list, and a re-import must never be observable as an empty list.
         database.withTransaction {
-            toDeleteIds.chunked(DELETE_CHUNK).forEach { chunk -> dao.deleteByIds(chunk) }
-            if (toUpdate.isNotEmpty()) dao.updateAll(toUpdate)
-            if (toInsert.isNotEmpty()) dao.insertAll(toInsert)
+            dao.deleteStale(sourceId, stamp)
         }
+        return dao.countForSource(sourceId)
     }
 
     override suspend fun setHidden(channelId: Long, hidden: Boolean) {
