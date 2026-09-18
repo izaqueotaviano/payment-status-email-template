@@ -17,6 +17,11 @@ data class SourceEntity(
     val password: String?,
     val useHttps: Boolean,
     val fileUri: String?,
+    /**
+     * When this source was last imported successfully, as epoch millis; 0 when it never was.
+     * Opening the channel list consults it instead of re-importing the whole playlist every time.
+     */
+    val lastSyncedAt: Long = 0,
 )
 
 private const val TYPE_M3U = "m3u"

@@ -15,11 +15,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
+import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okio.Buffer
-import okio.ForwardingSource
-import okio.Source as OkioSource
 import okio.buffer
 import okio.source
 
@@ -30,9 +28,6 @@ private const val DEFAULT_GROUP = "Geral"
  * that a big playlist does not pay for hundreds of separate database transactions.
  */
 private const val BATCH_SIZE = 2000
-
-/** Report download progress at most every 256 KB. */
-private const val REPORT_EVERY_BYTES = 256L * 1024
 
 /**
  * How often the skipped count is reported. A catalogue can open with tens of thousands of films
@@ -94,19 +89,23 @@ class PlaylistImporterImpl(
         onSkipped: (Int) -> Unit,
         onBatch: suspend (List<Channel>) -> Unit,
     ): Int {
-        val request = Request.Builder().url(source.url).build()
+        val request = Request.Builder()
+            .url(source.url)
+            // A playlist is tens of MB and is never read twice, so storing it in the HTTP cache
+            // only costs the box a second write of the whole thing.
+            .cacheControl(CacheControl.Builder().noStore().build())
+            .tag(ImportProgressTag::class.java, ImportProgressTag(onBytes))
+            .build()
         return okHttpClient.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 throw IOException("Falha ao baixar a lista: HTTP ${response.code}")
             }
             val body = response.body ?: throw IOException("A fonte respondeu sem conteúdo.")
-            val totalBytes = body.contentLength().coerceAtLeast(0L)
             val charset = body.contentType()?.charset() ?: Charsets.UTF_8
             // Stream the response instead of body.string(): some IPTV providers serve playlists
             // tens of MB long, and buffering the whole thing into one String would exhaust the
-            // heap. Counting as it goes is also what makes the progress bar real.
-            CountingSource(body.source()) { read -> onBytes(read, totalBytes) }
-                .buffer()
+            // heap. The bytes are counted a layer below, where they are still the real ones.
+            body.source()
                 .inputStream()
                 .reader(charset)
                 .useLines { lines -> importEntries(source.id, lines, liveOnly, onSkipped, onBatch) }
@@ -211,30 +210,6 @@ class PlaylistImporterImpl(
             total += batch.size
         }
         return total
-    }
-
-    /**
-     * Counts bytes as they are read, reporting at most every [REPORT_EVERY_BYTES] so a progress
-     * callback cannot become the bottleneck of the download itself.
-     */
-    private class CountingSource(
-        delegate: OkioSource,
-        private val onProgress: (Long) -> Unit,
-    ) : ForwardingSource(delegate) {
-        private var totalRead = 0L
-        private var lastReported = 0L
-
-        override fun read(sink: Buffer, byteCount: Long): Long {
-            val read = super.read(sink, byteCount)
-            if (read > 0) {
-                totalRead += read
-                if (totalRead - lastReported >= REPORT_EVERY_BYTES) {
-                    lastReported = totalRead
-                    onProgress(totalRead)
-                }
-            }
-            return read
-        }
     }
 
     private fun ParsedM3uEntry.toChannel(sourceId: Long, position: Int): Channel {

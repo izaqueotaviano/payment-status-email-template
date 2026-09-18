@@ -21,7 +21,8 @@ data class ParsedM3uEntry(
  */
 object M3uParser {
 
-    private val ATTRIBUTE_REGEX = Regex("""([A-Za-z0-9_-]+)="([^"]*)"""")
+    private const val LOGO_ATTRIBUTE = "tvg-logo=\""
+    private const val GROUP_ATTRIBUTE = "group-title=\""
 
     /**
      * Parses [lines] into a lazy sequence: an entry is produced as its lines are read, and
@@ -47,15 +48,13 @@ object M3uParser {
                     ""
                 }
 
-                val attributesPart = if (lastCommaIndex >= 0) {
-                    line.substring(0, lastCommaIndex)
-                } else {
-                    line
-                }
-                val attributes = ATTRIBUTE_REGEX.findAll(attributesPart)
-                    .associate { it.groupValues[1].lowercase() to it.groupValues[2] }
-                pendingLogo = attributes["tvg-logo"]?.takeIf { it.isNotBlank() }
-                pendingGroup = attributes["group-title"]?.takeIf { it.isNotBlank() }
+                // Two named attributes are all this reads, so it reads exactly those. Matching
+                // every attribute with a regex and collecting them into a map cost some twenty
+                // throwaway objects per entry, which on a playlist of a hundred thousand entries
+                // is most of what the parser spent its time on.
+                val attributesEnd = if (lastCommaIndex >= 0) lastCommaIndex else line.length
+                pendingLogo = attributeValue(line, attributesEnd, LOGO_ATTRIBUTE)
+                pendingGroup = attributeValue(line, attributesEnd, GROUP_ATTRIBUTE)
                 continue
             }
 
@@ -81,5 +80,18 @@ object M3uParser {
             }
             // A stream URL with no preceding #EXTINF is not a valid entry; ignore it.
         }
+    }
+
+    /**
+     * The value of [attribute] in the part of [line] before [attributesEnd], or null when it is
+     * absent or empty. Case-insensitive because playlists are not consistent about it.
+     */
+    private fun attributeValue(line: String, attributesEnd: Int, attribute: String): String? {
+        val nameStart = line.indexOf(attribute, ignoreCase = true)
+        if (nameStart < 0 || nameStart >= attributesEnd) return null
+        val valueStart = nameStart + attribute.length
+        val valueEnd = line.indexOf('"', valueStart)
+        if (valueEnd < 0 || valueEnd > attributesEnd) return null
+        return line.substring(valueStart, valueEnd).takeIf { it.isNotBlank() }
     }
 }

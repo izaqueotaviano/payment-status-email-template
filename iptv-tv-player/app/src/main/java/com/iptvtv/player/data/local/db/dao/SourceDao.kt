@@ -21,6 +21,12 @@ interface SourceDao {
     @Update
     suspend fun update(entity: SourceEntity)
 
+    @Query("SELECT lastSyncedAt FROM sources WHERE id = :id")
+    suspend fun lastSyncedAt(id: Long): Long?
+
+    @Query("UPDATE sources SET lastSyncedAt = :at WHERE id = :id")
+    suspend fun markSynced(id: Long, at: Long)
+
     @Query("DELETE FROM sources WHERE id = :id")
     suspend fun deleteById(id: Long)
 }

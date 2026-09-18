@@ -3,6 +3,17 @@ package com.iptvtv.player.domain.repository
 import com.iptvtv.player.domain.model.Channel
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * One import in flight. Created by [ChannelRepository.beginSync] and handed back to the calls that
+ * apply and close it, so nothing about an import lives in state another import could reach.
+ */
+interface SyncSession {
+    val sourceId: Long
+
+    /** How many channels the source held when this import started; 0 for a brand-new source. */
+    val previousCount: Int
+}
+
 interface ChannelRepository {
     /** All channels for [sourceId] (including hidden ones), ordered by sortOrder ascending. */
     fun observeChannels(sourceId: Long): Flow<List<Channel>>
@@ -15,34 +26,45 @@ interface ChannelRepository {
     /** How many channels each source holds, keyed by source id. */
     fun observeChannelCounts(): Flow<Map<Long, Int>>
 
+    /** How many channels [sourceId] currently holds. */
+    suspend fun countForSource(sourceId: Long): Int
+
     /**
-     * Opens an import for [sourceId] and returns its stamp, to be handed to [writeSyncBatch] and
-     * [finishSync].
+     * Opens an import for [sourceId], or returns null when one is already running for it.
      *
      * An import is applied in batches rather than all at once: a provider playlist can carry
      * hundreds of thousands of channels, and holding one - let alone the several copies a
-     * whole-list merge needs - is what exhausts the heap.
+     * whole-list merge needs - is what exhausts the heap. The returned [SyncSession] carries that
+     * import's own stamp and ordering state, so two imports of one source can never write over
+     * each other's rows.
      */
-    suspend fun beginSync(sourceId: Long): Long
+    suspend fun beginSync(sourceId: Long): SyncSession?
 
     /**
-     * Merges one batch of freshly imported channels.
+     * Merges one batch of freshly imported channels into [session]'s import.
      *
      * Matches them against the existing rows by [Channel.streamKey]: for a match,
      * originalName/originalGroup/logoUrl/streamUrl are refreshed but isFavorite, isHidden,
      * displayName, displayGroup and sortOrder are preserved. Channels with no match are
-     * appended. Everything written is stamped with [stamp].
+     * appended. Everything written is stamped with the session's stamp.
      */
-    suspend fun writeSyncBatch(sourceId: Long, stamp: Long, batch: List<Channel>)
+    suspend fun writeSyncBatch(session: SyncSession, batch: List<Channel>)
 
     /**
-     * Closes the import: deletes the rows no batch stamped, i.e. the channels the provider
-     * dropped, and returns how many the source now has.
+     * Closes [session]: deletes the rows no batch stamped, i.e. the channels the provider dropped,
+     * and returns how many the source now has. Releases the session either way.
      *
      * Throws when [importedCount] is zero rather than deleting everything, since a provider
      * answering with an error page parses to no channels.
      */
-    suspend fun finishSync(sourceId: Long, stamp: Long, importedCount: Int): Int
+    suspend fun finishSync(session: SyncSession, importedCount: Int): Int
+
+    /**
+     * Abandons [session] without deleting anything, releasing the source for a later import.
+     * Whatever batches already landed stay: a half-imported list is still better than none, and
+     * the next import stamps them again. Calling it twice is harmless.
+     */
+    suspend fun cancelSync(session: SyncSession)
 
     suspend fun setHidden(channelId: Long, hidden: Boolean)
     suspend fun setFavorite(channelId: Long, favorite: Boolean)

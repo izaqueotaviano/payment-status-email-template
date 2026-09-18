@@ -2,6 +2,7 @@ package com.iptvtv.player.data.local.db.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.iptvtv.player.data.local.db.entities.ChannelEntity
@@ -24,7 +25,11 @@ interface ChannelDao {
     @Query("SELECT id FROM channels WHERE sourceId = :sourceId AND isHidden = 0 ORDER BY sortOrder")
     fun observeVisibleIds(sourceId: Long): Flow<List<Long>>
 
-    @Insert
+    /**
+     * IGNORE, not the default ABORT: a provider playlist can list the same stream twice, and with
+     * (sourceId, streamKey) unique the second copy would otherwise abort the whole batch.
+     */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(entities: List<ChannelEntity>)
 
     @Update
@@ -33,6 +38,14 @@ interface ChannelDao {
     /** The rows of one import batch, so a merge never has to read the whole source at once. */
     @Query("SELECT * FROM channels WHERE sourceId = :sourceId AND streamKey IN (:streamKeys)")
     suspend fun getByStreamKeys(sourceId: Long, streamKeys: List<String>): List<ChannelEntity>
+
+    /**
+     * Marks rows the import matched and found unchanged. One statement per chunk instead of a
+     * full-row UPDATE each: re-importing an unchanged playlist rewrote every single row, which is
+     * most of what made a refresh take minutes.
+     */
+    @Query("UPDATE channels SET syncStamp = :stamp WHERE sourceId = :sourceId AND streamKey IN (:streamKeys)")
+    suspend fun stampSeen(sourceId: Long, stamp: Long, streamKeys: List<String>)
 
     @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM channels WHERE sourceId = :sourceId")
     suspend fun maxSortOrder(sourceId: Long): Int

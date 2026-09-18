@@ -79,8 +79,12 @@ fun AppNavHost(container: AppContainer) {
                 viewModel = vm,
                 onAddSource = { type -> navController.navigate(Routes.addSource(type)) },
                 onEditSource = { sourceId -> navController.navigate(Routes.editSource(sourceId)) },
-                onOpenChannelList = { sourceId -> navController.navigate(Routes.channelList(sourceId)) },
-                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onOpenChannelList = { sourceId ->
+                    // launchSingleTop so returning to a list does not stack another entry - and
+                    // with it another ChannelListViewModel that would start its own import.
+                    navController.navigate(Routes.channelList(sourceId)) { launchSingleTop = true }
+                },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) { launchSingleTop = true } },
             )
         }
 
@@ -113,8 +117,8 @@ fun AppNavHost(container: AppContainer) {
                 viewModel = vm,
                 sourceId = sourceId,
                 onChannelClick = { channelId -> navController.navigate(Routes.player(sourceId, channelId)) },
-                onOpenSources = { navController.navigate(Routes.SOURCES) },
-                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onOpenSources = { navController.navigate(Routes.SOURCES) { launchSingleTop = true } },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) { launchSingleTop = true } },
             )
         }
 

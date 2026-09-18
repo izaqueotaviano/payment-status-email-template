@@ -19,10 +19,19 @@ class SourceRepositoryImpl(private val dao: SourceDao) : SourceRepository {
         dao.insert(source.toEntity())
 
     override suspend fun updateSource(source: Source) {
-        dao.update(source.toEntity())
+        // toEntity() knows nothing about lastSyncedAt, so it would reset it and make every edit -
+        // even a rename - cost a full re-import on the next visit.
+        val lastSyncedAt = dao.lastSyncedAt(source.id) ?: 0
+        dao.update(source.toEntity().copy(lastSyncedAt = lastSyncedAt))
     }
 
     override suspend fun deleteSource(id: Long) {
         dao.deleteById(id)
+    }
+
+    override suspend fun lastSyncedAt(id: Long): Long = dao.lastSyncedAt(id) ?: 0
+
+    override suspend fun markSynced(id: Long, at: Long) {
+        dao.markSynced(id, at)
     }
 }

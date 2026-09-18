@@ -23,6 +23,8 @@ object NetworkModule {
         return OkHttpClient.Builder()
             .cache(Cache(cacheDir, CACHE_SIZE_BYTES))
             .addInterceptor(loggingInterceptor)
+            // Network-level on purpose: see importProgressInterceptor.
+            .addNetworkInterceptor(importProgressInterceptor)
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .build()

@@ -9,4 +9,12 @@ interface SourceRepository {
     suspend fun addSource(source: Source): Long
     suspend fun updateSource(source: Source)
     suspend fun deleteSource(id: Long)
+
+    /**
+     * When [id] was last imported successfully, as epoch millis, or 0 when it never was. The
+     * channel list consults this instead of re-importing the playlist on every visit.
+     */
+    suspend fun lastSyncedAt(id: Long): Long
+
+    suspend fun markSynced(id: Long, at: Long)
 }

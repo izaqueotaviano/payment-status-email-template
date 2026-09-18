@@ -8,6 +8,7 @@ import com.iptvtv.player.data.local.db.entities.toDomain
 import com.iptvtv.player.data.local.db.entities.toEntity
 import com.iptvtv.player.domain.model.Channel
 import com.iptvtv.player.domain.repository.ChannelRepository
+import com.iptvtv.player.domain.repository.SyncSession
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -50,70 +51,137 @@ class ChannelRepositoryImpl(
             .map { rows -> rows.associate { it.sourceId to it.channelCount } }
             .flowOn(Dispatchers.Default)
 
-    /** Guards the per-source sortOrder counters, which batches advance one after another. */
-    private val syncMutex = Mutex()
-    private val nextSortOrder = HashMap<Long, Int>()
+    /**
+     * The sources with an import in flight. A second import of the same source would read the same
+     * "before" snapshot, and whichever finished last would delete the other's rows as stale.
+     */
+    private val inFlightMutex = Mutex()
+    private val inFlight = HashSet<Long>()
 
-    override suspend fun beginSync(sourceId: Long): Long {
-        val startOrder = dao.maxSortOrder(sourceId) + 1
-        syncMutex.withLock { nextSortOrder[sourceId] = startOrder }
-        // Any value no earlier import used; the clock is enough and needs no extra bookkeeping.
-        return System.currentTimeMillis()
+    /** A live import. Its ordering counter belongs to it alone, not to a map shared by source. */
+    private class Session(
+        override val sourceId: Long,
+        override val previousCount: Int,
+        val stamp: Long,
+        var nextSortOrder: Int,
+    ) : SyncSession {
+        /** Guarded by the repository's mutex. */
+        var released = false
     }
 
-    override suspend fun writeSyncBatch(sourceId: Long, stamp: Long, batch: List<Channel>) {
+    override suspend fun countForSource(sourceId: Long): Int = dao.countForSource(sourceId)
+
+    override suspend fun beginSync(sourceId: Long): SyncSession? {
+        inFlightMutex.withLock {
+            if (!inFlight.add(sourceId)) return null
+        }
+        // Past the point the source is marked busy, nothing may throw without unmarking it, or
+        // the source would refuse every later import for the life of the process.
+        return try {
+            Session(
+                sourceId = sourceId,
+                previousCount = dao.countForSource(sourceId),
+                // Any value no earlier import used; the clock is enough and needs no bookkeeping.
+                stamp = System.currentTimeMillis(),
+                nextSortOrder = dao.maxSortOrder(sourceId) + 1,
+            )
+        } catch (error: Throwable) {
+            inFlightMutex.withLock { inFlight.remove(sourceId) }
+            throw error
+        }
+    }
+
+    override suspend fun writeSyncBatch(session: SyncSession, batch: List<Channel>) {
+        val live = session as Session
         if (batch.isEmpty()) return
 
-        val keys = batch.map { it.streamKey }
-        // Chunked because SQLite binds one variable per value and caps them at 999 below API 31.
-        val existingByKey = keys.chunked(QUERY_CHUNK)
-            .flatMap { chunk -> dao.getByStreamKeys(sourceId, chunk) }
+        // A provider can list the same stream twice. Left in, the duplicates would be inserted as
+        // separate rows and the next import would silently delete one of them.
+        val fresh = batch.distinctBy { it.streamKey }
+
+        val existingByKey = fresh.map { it.streamKey }
+            // Chunked because SQLite binds one variable per value and caps them at 999 below API 31.
+            .chunked(QUERY_CHUNK)
+            .flatMap { chunk -> dao.getByStreamKeys(live.sourceId, chunk) }
             .associateBy { it.streamKey }
 
-        val toInsert = ArrayList<ChannelEntity>(batch.size)
+        val toInsert = ArrayList<ChannelEntity>(fresh.size)
         val toUpdate = ArrayList<ChannelEntity>()
+        val toStamp = ArrayList<String>(fresh.size)
 
-        syncMutex.withLock {
-            var order = nextSortOrder[sourceId] ?: (dao.maxSortOrder(sourceId) + 1)
-            for (fresh in batch) {
-                val existing = existingByKey[fresh.streamKey]
-                if (existing != null) {
-                    toUpdate += existing.copy(
-                        originalName = fresh.originalName,
-                        logoUrl = fresh.logoUrl,
-                        streamUrl = fresh.streamUrl,
-                        originalGroup = fresh.originalGroup,
-                        syncStamp = stamp,
-                    )
-                } else {
-                    toInsert += fresh.toEntity().copy(
-                        id = 0,
-                        sourceId = sourceId,
-                        sortOrder = order++,
-                        syncStamp = stamp,
-                    )
-                }
+        for (channel in fresh) {
+            val existing = existingByKey[channel.streamKey]
+            if (existing == null) {
+                toInsert += channel.toEntity().copy(
+                    id = 0,
+                    sourceId = live.sourceId,
+                    sortOrder = live.nextSortOrder++,
+                    syncStamp = live.stamp,
+                )
+                continue
             }
-            nextSortOrder[sourceId] = order
+            val unchanged = existing.originalName == channel.originalName &&
+                existing.logoUrl == channel.logoUrl &&
+                existing.streamUrl == channel.streamUrl &&
+                existing.originalGroup == channel.originalGroup
+            if (unchanged) {
+                // Only the stamp has to move. A full-row UPDATE per channel here is what made
+                // re-importing an unchanged playlist cost as much as importing it the first time;
+                // the stamp goes on in one statement per chunk instead.
+                toStamp += channel.streamKey
+            } else {
+                toUpdate += existing.copy(
+                    originalName = channel.originalName,
+                    logoUrl = channel.logoUrl,
+                    streamUrl = channel.streamUrl,
+                    originalGroup = channel.originalGroup,
+                    syncStamp = live.stamp,
+                )
+            }
         }
 
         database.withTransaction {
             if (toUpdate.isNotEmpty()) dao.updateAll(toUpdate)
+            toStamp.chunked(QUERY_CHUNK).forEach { chunk ->
+                dao.stampSeen(live.sourceId, live.stamp, chunk)
+            }
             if (toInsert.isNotEmpty()) dao.insertAll(toInsert)
         }
     }
 
-    override suspend fun finishSync(sourceId: Long, stamp: Long, importedCount: Int): Int {
-        if (importedCount == 0) {
-            // Providers answer with an HTML error or maintenance page under HTTP 200 often
-            // enough that trusting an empty parse would mean wiping the list - and every
-            // favorite, rename and hidden flag with it - on a routine refresh.
-            throw IOException("A fonte não retornou nenhum canal.")
+    override suspend fun finishSync(session: SyncSession, importedCount: Int): Int {
+        val live = session as Session
+        try {
+            if (importedCount == 0) {
+                // Providers answer with an HTML error or maintenance page under HTTP 200 often
+                // enough that trusting an empty parse would mean wiping the list - and every
+                // favorite, rename and hidden flag with it - on a routine refresh.
+                throw IOException("A fonte não retornou nenhum canal.")
+            }
+            database.withTransaction {
+                dao.deleteStale(live.sourceId, live.stamp)
+            }
+            return dao.countForSource(live.sourceId)
+        } finally {
+            release(live)
         }
-        database.withTransaction {
-            dao.deleteStale(sourceId, stamp)
+    }
+
+    override suspend fun cancelSync(session: SyncSession) {
+        release(session as Session)
+    }
+
+    /**
+     * Unmarks the source, once. Keyed to the session and not just to the source id: a session that
+     * released on its way out and then released again would otherwise unmark whichever import had
+     * started in between, letting two run at once - the very thing the marking prevents.
+     */
+    private suspend fun release(session: Session) {
+        inFlightMutex.withLock {
+            if (session.released) return@withLock
+            session.released = true
+            inFlight.remove(session.sourceId)
         }
-        return dao.countForSource(sourceId)
     }
 
     override suspend fun setHidden(channelId: Long, hidden: Boolean) {

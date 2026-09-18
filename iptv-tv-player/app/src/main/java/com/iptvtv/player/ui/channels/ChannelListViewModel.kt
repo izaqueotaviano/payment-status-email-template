@@ -16,12 +16,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+/**
+ * How old a stored list may be before opening the channel list re-imports it on its own. Provider
+ * line-ups change rarely; the "Atualizar" button is there for the moment they do.
+ */
+private const val STALE_AFTER_MILLIS = 12L * 60 * 60 * 1000
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChannelListViewModel(
@@ -36,13 +43,47 @@ class ChannelListViewModel(
     fun setSource(sourceId: Long) {
         if (currentSourceId.value == sourceId) return
         currentSourceId.value = sourceId
-        refresh()
+        viewModelScope.launch { syncIfStale(sourceId) }
     }
 
-    val allChannels: StateFlow<List<Channel>> = currentSourceId
-        .filterNotNull()
-        .flatMapLatest { sourceId -> channelRepository.observeChannels(sourceId) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    /**
+     * Imports only when there is a reason to: nothing stored yet, or a list old enough to have
+     * changed. Opening the channel list used to re-download and re-merge the whole playlist every
+     * single time, which on a provider list is minutes of waiting for a list the app already had.
+     */
+    private suspend fun syncIfStale(sourceId: Long) {
+        val stale = try {
+            channelRepository.countForSource(sourceId) == 0 ||
+                System.currentTimeMillis() - sourceRepository.lastSyncedAt(sourceId) > STALE_AFTER_MILLIS
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            // Reading the stamp is not worth failing the screen over; the manual button remains.
+            false
+        }
+        if (stale) refresh()
+    }
+
+    private val isRefreshingFlow = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = isRefreshingFlow
+
+    /**
+     * Room re-runs every active query after each write, so while an import is applying its batches
+     * this query would re-read and re-map the entire table once per batch - work that grows with
+     * the square of the playlist, and the single largest reason importing crawled. Unsubscribing
+     * for the duration leaves the last known list on screen (the progress panel explains why it is
+     * not moving) and one fresh read happens when the import ends.
+     */
+    val allChannels: StateFlow<List<Channel>> =
+        combine(currentSourceId, isRefreshingFlow) { sourceId, refreshing -> sourceId to refreshing }
+            .flatMapLatest { (sourceId, refreshing) ->
+                when {
+                    sourceId == null -> flowOf(emptyList())
+                    refreshing -> emptyFlow()
+                    else -> channelRepository.observeChannels(sourceId)
+                }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val defaultChannelId: StateFlow<Long?> = settingsRepository.observeDefaultChannelId()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -56,10 +97,17 @@ class ChannelListViewModel(
     /** Reveals hidden channels in the list so they can be restored. */
     val showHidden = MutableStateFlow(false)
 
-    val hiddenCount: StateFlow<Int> = currentSourceId
-        .filterNotNull()
-        .flatMapLatest { sourceId -> channelRepository.observeHiddenCount(sourceId) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val hiddenCount: StateFlow<Int> =
+        combine(currentSourceId, isRefreshingFlow) { sourceId, refreshing -> sourceId to refreshing }
+            .flatMapLatest { (sourceId, refreshing) ->
+                when {
+                    sourceId == null -> flowOf(0)
+                    // Same reason as allChannels: one more query for an import to re-run per batch.
+                    refreshing -> emptyFlow()
+                    else -> channelRepository.observeHiddenCount(sourceId)
+                }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     val groups: StateFlow<List<String>> = allChannels
         .map { channels -> channels.filterNot { it.isHidden }.map { it.displayGroup }.distinct().sorted() }
@@ -89,9 +137,6 @@ class ChannelListViewModel(
         // keystroke; it does not belong on the main thread.
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    private val isRefreshingFlow = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = isRefreshingFlow
 
     private val syncErrorFlow = MutableStateFlow<String?>(null)
     val syncError: StateFlow<String?> = syncErrorFlow

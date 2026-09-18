@@ -7,7 +7,14 @@ import com.iptvtv.player.domain.model.Channel
 
 @Entity(
     tableName = "channels",
-    indices = [Index("sourceId"), Index("streamKey")],
+    // Both indices are composite on purpose. The list reads a source ordered by sortOrder and the
+    // import looks a batch up by (sourceId, streamKey); two single-column indices served neither,
+    // and each one still had to be rewritten on every insert. The unique constraint is also what
+    // makes a duplicated channel impossible rather than merely unlikely.
+    indices = [
+        Index(value = ["sourceId", "sortOrder"]),
+        Index(value = ["sourceId", "streamKey"], unique = true),
+    ],
 )
 data class ChannelEntity(
     @PrimaryKey(autoGenerate = true)
