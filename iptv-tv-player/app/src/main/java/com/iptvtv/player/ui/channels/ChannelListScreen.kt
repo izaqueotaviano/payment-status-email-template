@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -85,16 +86,45 @@ fun ChannelListScreen(
     var dialogChannel by remember { mutableStateOf<Channel?>(null) }
     var previewChannelId by remember { mutableStateOf<Long?>(null) }
 
-    val previewChannel = channels.firstOrNull { it.id == previewChannelId } ?: channels.firstOrNull()
+    // Only fall back to the first channel before anything has been previewed. Falling back
+    // afterwards would silently re-point the panel at another channel when the previewed one
+    // leaves the list (unfavoriting it under the "Favoritos" filter), so the buttons would act
+    // on a channel the user never selected.
+    val previewChannel = if (previewChannelId == null) {
+        channels.firstOrNull()
+    } else {
+        channels.firstOrNull { it.id == previewChannelId }
+    }
     val liveDialogChannel = dialogChannel?.let { stored ->
         allChannels.firstOrNull { it.id == stored.id } ?: stored
     }
 
-    val firstRowFocus = remember { FocusRequester() }
+    val hasFilters = query.isNotBlank() || favoritesOnly || selectedGroup != null
+    val clearFilters = {
+        viewModel.searchQuery.value = ""
+        viewModel.favoritesOnly.value = false
+        viewModel.selectedGroup.value = null
+    }
+
+    val listState = rememberLazyListState()
+    val rowFocus = remember { FocusRequester() }
+    val emptyStateFocus = remember { FocusRequester() }
+    // One shot, and anchored to the restored scroll position: re-running it would yank focus out
+    // of the search field while typing, and targeting row 0 would find nothing composed after
+    // returning from the player deep in the list.
+    var focusAnchorIndex by remember { mutableStateOf(-1) }
     LaunchedEffect(channels.isNotEmpty()) {
-        if (channels.isNotEmpty()) {
+        if (focusAnchorIndex == -1 && channels.isNotEmpty()) {
+            focusAnchorIndex = listState.firstVisibleItemIndex.coerceAtMost(channels.lastIndex)
             delay(150)
-            runCatching { firstRowFocus.requestFocus() }
+            runCatching { rowFocus.requestFocus() }
+        }
+    }
+    // An empty list removes every focusable in the main area, so hand focus to its action.
+    LaunchedEffect(channels.isEmpty()) {
+        if (channels.isEmpty()) {
+            delay(150)
+            runCatching { emptyStateFocus.requestFocus() }
         }
     }
 
@@ -223,9 +253,16 @@ fun ChannelListScreen(
                 Row(modifier = Modifier.fillMaxSize().padding(top = 18.dp)) {
                     Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                         if (channels.isEmpty()) {
-                            EmptyState(isRefreshing = isRefreshing)
+                            EmptyState(
+                                isRefreshing = isRefreshing,
+                                hasFilters = hasFilters,
+                                onClearFilters = clearFilters,
+                                onRefresh = { viewModel.refresh() },
+                                actionModifier = Modifier.focusRequester(emptyStateFocus),
+                            )
                         } else {
                             LazyColumn(
+                                state = listState,
                                 verticalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier.fillMaxSize(),
                             ) {
@@ -241,8 +278,8 @@ fun ChannelListScreen(
                                         onClick = { onChannelClick(channel.id) },
                                         onLongPress = { dialogChannel = channel },
                                         onFocused = { previewChannelId = channel.id },
-                                        modifier = if (index == 0) {
-                                            Modifier.focusRequester(firstRowFocus)
+                                        modifier = if (index == focusAnchorIndex) {
+                                            Modifier.focusRequester(rowFocus)
                                         } else {
                                             Modifier
                                         },
@@ -295,7 +332,13 @@ fun ChannelListScreen(
 }
 
 @Composable
-private fun EmptyState(isRefreshing: Boolean) {
+private fun EmptyState(
+    isRefreshing: Boolean,
+    hasFilters: Boolean,
+    onClearFilters: () -> Unit,
+    onRefresh: () -> Unit,
+    actionModifier: Modifier,
+) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
@@ -305,14 +348,20 @@ private fun EmptyState(isRefreshing: Boolean) {
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = if (isRefreshing) {
-                    "Isso pode levar alguns segundos em listas grandes."
-                } else {
-                    "Importe uma fonte em Fontes ou remova os filtros aplicados."
+                text = when {
+                    isRefreshing -> "Isso pode levar alguns segundos em listas grandes."
+                    hasFilters -> "Nenhum canal corresponde aos filtros aplicados."
+                    else -> "Importe uma fonte em Fontes para começar."
                 },
                 color = BrandMuted,
                 fontSize = 14.sp,
                 modifier = Modifier.padding(top = 6.dp),
+            )
+            PillButton(
+                text = if (hasFilters) "Limpar filtros" else "Atualizar agora",
+                onClick = if (hasFilters) onClearFilters else onRefresh,
+                primary = true,
+                modifier = actionModifier.padding(top = 16.dp),
             )
         }
     }

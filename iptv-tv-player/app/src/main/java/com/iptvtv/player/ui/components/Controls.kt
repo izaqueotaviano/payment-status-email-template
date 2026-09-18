@@ -19,13 +19,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -84,7 +88,10 @@ fun PillButton(
                 shape = shape,
             )
             .clickOnSelect { if (enabled) onClick() }
-            .focusable(enabled = enabled, interactionSource = interactionSource)
+            // Stays focusable while disabled on purpose: a button that drops out of the focus
+            // graph mid-press (e.g. "Atualizar" while syncing) leaves the screen with no focus
+            // owner and the remote does nothing until the flag flips back.
+            .focusable(interactionSource = interactionSource)
             .padding(horizontal = 22.dp, vertical = 11.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -138,6 +145,27 @@ fun FilterChip(
     }
 }
 
+/**
+ * Moves focus instead of letting a text field swallow the D-pad.
+ *
+ * Compose text fields bind the arrow keys to caret movement and consume them, which on a remote
+ * means focus can never leave the field. On TV the caret is handled by the on-screen keyboard
+ * while it is open, so the arrows are free to navigate.
+ */
+fun Modifier.dpadFocusEscape(focusManager: FocusManager): Modifier = onPreviewKeyEvent { event ->
+    if (event.type != KeyEventType.KeyDown) {
+        return@onPreviewKeyEvent false
+    }
+    val direction = when (event.key) {
+        Key.DirectionLeft -> FocusDirection.Left
+        Key.DirectionRight -> FocusDirection.Right
+        Key.DirectionUp -> FocusDirection.Up
+        Key.DirectionDown -> FocusDirection.Down
+        else -> null
+    } ?: return@onPreviewKeyEvent false
+    focusManager.moveFocus(direction)
+}
+
 /** Pill-shaped search input with a placeholder and a violet focus ring. */
 @Composable
 fun SearchField(
@@ -148,6 +176,7 @@ fun SearchField(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
+    val focusManager = LocalFocusManager.current
     val shape = RoundedCornerShape(percent = 50)
 
     BasicTextField(
@@ -158,6 +187,7 @@ fun SearchField(
         cursorBrush = SolidColor(BrandPrimary),
         interactionSource = interactionSource,
         modifier = modifier
+            .dpadFocusEscape(focusManager)
             .background(BrandSurface, shape)
             .border(
                 width = if (isFocused) 2.dp else 1.dp,

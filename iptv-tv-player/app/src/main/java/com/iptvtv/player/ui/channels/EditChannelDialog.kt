@@ -6,15 +6,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -28,6 +34,7 @@ import com.iptvtv.player.ui.theme.BrandMuted
 import com.iptvtv.player.ui.theme.BrandOnSurface
 import com.iptvtv.player.ui.theme.BrandOutline
 import com.iptvtv.player.ui.theme.BrandSurface
+import kotlinx.coroutines.delay
 
 @Composable
 fun EditChannelDialog(
@@ -47,13 +54,25 @@ fun EditChannelDialog(
     var nameText by remember(channel.id) { mutableStateOf(channel.displayName) }
     var groupText by remember(channel.id) { mutableStateOf(channel.displayGroup) }
     val shape = RoundedCornerShape(24.dp)
+    val playFocus = remember { FocusRequester() }
+
+    // A dialog opens with nothing focused inside it, so the remote would have no target.
+    LaunchedEffect(channel.id) {
+        delay(120)
+        runCatching { playFocus.requestFocus() }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .width(470.dp)
+                // The full action list is taller than a 540dp TV screen: without a bounded,
+                // scrollable body a Column measures the last children at zero height and the
+                // bottom buttons silently vanish.
+                .heightIn(max = 440.dp)
                 .background(BrandSurface, shape)
                 .border(1.dp, BrandOutline, shape)
+                .verticalScroll(rememberScrollState())
                 .padding(26.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -73,7 +92,7 @@ fun EditChannelDialog(
                 text = "Assistir",
                 onClick = onPlay,
                 primary = true,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().focusRequester(playFocus),
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {

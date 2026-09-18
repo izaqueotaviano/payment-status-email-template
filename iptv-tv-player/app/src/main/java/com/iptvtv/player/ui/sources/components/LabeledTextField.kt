@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -23,6 +24,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
+import com.iptvtv.player.ui.components.dpadFocusEscape
 import com.iptvtv.player.ui.theme.BrandMuted
 import com.iptvtv.player.ui.theme.BrandOnSurface
 import com.iptvtv.player.ui.theme.BrandOutline
@@ -45,6 +47,7 @@ fun LabeledTextField(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
+    val focusManager = LocalFocusManager.current
     val shape = RoundedCornerShape(12.dp)
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -66,6 +69,7 @@ fun LabeledTextField(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 6.dp)
+                .dpadFocusEscape(focusManager)
                 .background(BrandSurfaceVariant, shape)
                 .border(
                     width = if (isFocused) 2.dp else 1.dp,
