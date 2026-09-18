@@ -28,7 +28,9 @@ class ChannelListViewModel(
     private val currentSourceId = MutableStateFlow<Long?>(null)
 
     fun setSource(sourceId: Long) {
+        if (currentSourceId.value == sourceId) return
         currentSourceId.value = sourceId
+        refresh()
     }
 
     val allChannels: StateFlow<List<Channel>> = currentSourceId
@@ -65,14 +67,17 @@ class ChannelListViewModel(
     private val isRefreshingFlow = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = isRefreshingFlow
 
+    private val syncErrorFlow = MutableStateFlow<String?>(null)
+    val syncError: StateFlow<String?> = syncErrorFlow
+
     fun refresh() {
         val sourceId = currentSourceId.value ?: return
         viewModelScope.launch {
             isRefreshingFlow.value = true
+            syncErrorFlow.value = null
             val source = sourceRepository.getSource(sourceId)
-            if (source != null) {
-                syncSourceUseCase(source)
-            }
+            val result = if (source != null) syncSourceUseCase(source) else Result.success(Unit)
+            syncErrorFlow.value = result.exceptionOrNull()?.message
             isRefreshingFlow.value = false
         }
     }

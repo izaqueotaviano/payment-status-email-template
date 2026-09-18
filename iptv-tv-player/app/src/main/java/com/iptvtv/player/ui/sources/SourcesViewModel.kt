@@ -24,19 +24,12 @@ class SourcesViewModel(
     val activeSourceId: StateFlow<Long?> = settingsRepository.observeActiveSourceId()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private val _isSyncing = MutableStateFlow(false)
-    val isSyncing: StateFlow<Boolean> = _isSyncing
-
-    private val _syncError = MutableStateFlow<String?>(null)
-    val syncError: StateFlow<String?> = _syncError
-
     fun selectActive(source: Source) {
+        // Syncing happens once the channel list screen opens (ChannelListViewModel.setSource),
+        // which is also where sync errors are shown - doing it here too would race the two
+        // syncs against each other for the same source right after this call.
         viewModelScope.launch {
             settingsRepository.setActiveSourceId(source.id)
-            _isSyncing.value = true
-            val result = syncSourceUseCase(source)
-            _syncError.value = result.exceptionOrNull()?.message
-            _isSyncing.value = false
         }
     }
 

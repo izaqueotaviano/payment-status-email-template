@@ -47,6 +47,7 @@ fun ChannelListScreen(
 
     val favoritesOnly by viewModel.favoritesOnly.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val syncError by viewModel.syncError.collectAsState()
     val groupedChannels by viewModel.groupedChannels.collectAsState()
     val defaultChannelId by viewModel.defaultChannelId.collectAsState()
     val allChannels by viewModel.allChannels.collectAsState()
@@ -93,6 +94,14 @@ fun ChannelListScreen(
             ) {
                 Text(text = "Configuracoes")
             }
+        }
+
+        if (syncError != null) {
+            Text(
+                text = "Erro ao sincronizar: $syncError",
+                color = Color.Red,
+                modifier = Modifier.padding(top = 8.dp),
+            )
         }
 
         if (groupedChannels.isEmpty()) {

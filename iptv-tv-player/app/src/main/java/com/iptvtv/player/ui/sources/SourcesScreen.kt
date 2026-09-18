@@ -39,8 +39,6 @@ fun SourcesScreen(
 ) {
     val sources by viewModel.sources.collectAsState()
     val activeSourceId by viewModel.activeSourceId.collectAsState()
-    val isSyncing by viewModel.isSyncing.collectAsState()
-    val syncError by viewModel.syncError.collectAsState()
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -55,9 +53,6 @@ fun SourcesScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(text = "Fontes de canais", style = MaterialTheme.typography.headlineMedium)
-                if (isSyncing) {
-                    Text(text = "Sincronizando...", style = MaterialTheme.typography.bodySmall)
-                }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -65,13 +60,6 @@ fun SourcesScreen(
                 Button(onClick = { onAddSource("xtream") }) { Text(text = "+ Xtream Codes") }
                 Button(onClick = { onAddSource("local") }) { Text(text = "+ Arquivo local") }
                 Button(onClick = onOpenSettings) { Text(text = "Configurações") }
-            }
-
-            if (syncError != null) {
-                Text(
-                    text = "Erro ao sincronizar: $syncError",
-                    color = MaterialTheme.colorScheme.error,
-                )
             }
 
             if (sources.isEmpty()) {
