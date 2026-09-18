@@ -12,7 +12,7 @@ sideload (não requer Google Play / loja). Controle 100% pelo D-pad do controle 
 - DataStore Preferences para configurações (fonte ativa, canal padrão)
 - Retrofit/OkHttp + kotlinx.serialization para a API Xtream Codes e download de playlists M3U
 - Storage Access Framework para importar um arquivo M3U local
-- `minSdk 21`, `compileSdk`/`targetSdk 37`
+- `minSdk 24` (Android 7.0+), `compileSdk`/`targetSdk 37`
 
 ## Funcionalidades
 
@@ -134,6 +134,11 @@ de diagnóstico no workflow acima), já que esta sandbox de desenvolvimento não
 
 ## Limitações conhecidas / próximos passos
 
+- O pedido original era `minSdk 21`, mas a versão atual do `androidx.navigation:navigation-compose`
+  (2.10.1) exige `minSdk 24` no `AndroidManifest` (Android 7.0+) — subimos para 24 para poder usar a
+  versão corrente da biblioteca. Na prática isso não deve afetar nenhum Fire TV/Android TV em uso hoje
+  (o Fire TV Stick mais antigo ainda vendido roda Android 9+). Para voltar a `minSdk 21`, seria preciso
+  fixar uma versão bem mais antiga do `navigation-compose` (e possivelmente do `compileSdk`/AGP também).
 - EPG e catálogo de VOD ficaram de fora por decisão de escopo, mas nada na arquitetura os bloqueia (dá
   para adicionar uma tabela de programação e uma nova fonte/tela sem tocar no que já existe).
 - O parser M3U cobre o formato padrão (`#EXTINF` com `tvg-logo`/`group-title`); listas com extensões

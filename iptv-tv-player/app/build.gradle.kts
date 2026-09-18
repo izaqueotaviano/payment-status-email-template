@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "com.iptvtv.player"
-        minSdk = 21
+        minSdk = 24
         targetSdk = 37
         versionCode = 1
         versionName = "1.0.0"
