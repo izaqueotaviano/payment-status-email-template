@@ -39,6 +39,7 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
                 container.channelRepository,
                 container.settingsRepository,
                 container.cacheManager,
+                container.crashReporter,
             )
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }

@@ -13,6 +13,7 @@ import com.iptvtv.player.domain.repository.SourceRepository
 import com.iptvtv.player.domain.usecase.PlaylistImporter
 import com.iptvtv.player.domain.usecase.SyncSourceUseCase
 import com.iptvtv.player.util.CacheManager
+import com.iptvtv.player.util.CrashReporter
 import okhttp3.OkHttpClient
 
 /**
@@ -33,4 +34,5 @@ class AppContainer(context: Context) {
     private val playlistImporter: PlaylistImporter by lazy { PlaylistImporterImpl(appContext, okHttpClient) }
     val syncSourceUseCase: SyncSourceUseCase by lazy { SyncSourceUseCase(playlistImporter, channelRepository) }
     val cacheManager: CacheManager by lazy { CacheManager(appContext, okHttpClient) }
+    val crashReporter: CrashReporter by lazy { CrashReporter(appContext) }
 }

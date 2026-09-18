@@ -10,5 +10,6 @@ class IptvApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        container.crashReporter.install()
     }
 }

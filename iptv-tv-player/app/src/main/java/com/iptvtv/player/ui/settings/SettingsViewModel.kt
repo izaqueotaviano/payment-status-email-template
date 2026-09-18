@@ -7,6 +7,7 @@ import com.iptvtv.player.domain.repository.ChannelRepository
 import com.iptvtv.player.domain.repository.SettingsRepository
 import com.iptvtv.player.domain.repository.SourceRepository
 import com.iptvtv.player.util.CacheManager
+import com.iptvtv.player.util.CrashReporter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +21,16 @@ class SettingsViewModel(
     private val channelRepository: ChannelRepository,
     private val settingsRepository: SettingsRepository,
     private val cacheManager: CacheManager,
+    private val crashReporter: CrashReporter,
 ) : ViewModel() {
+
+    private val _lastCrash = MutableStateFlow(crashReporter.lastCrash())
+    val lastCrash: StateFlow<String?> = _lastCrash
+
+    fun clearLastCrash() {
+        crashReporter.clear()
+        _lastCrash.value = null
+    }
 
     val sources: StateFlow<List<Source>> = sourceRepository.observeSources()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

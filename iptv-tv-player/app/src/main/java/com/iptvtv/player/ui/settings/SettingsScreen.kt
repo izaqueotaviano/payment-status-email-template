@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -21,6 +23,7 @@ import com.iptvtv.player.BuildConfig
 import com.iptvtv.player.ui.components.AppBackground
 import com.iptvtv.player.ui.components.PillButton
 import com.iptvtv.player.ui.components.SectionCard
+import com.iptvtv.player.ui.theme.BrandError
 import com.iptvtv.player.ui.theme.BrandMuted
 import com.iptvtv.player.ui.theme.BrandOnSurface
 
@@ -34,11 +37,13 @@ fun SettingsScreen(
 
     val defaultChannelName by viewModel.defaultChannelName.collectAsState()
     val isClearingCache by viewModel.isClearingCache.collectAsState()
+    val lastCrash by viewModel.lastCrash.collectAsState()
 
     AppBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 56.dp, vertical = 36.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
@@ -108,6 +113,30 @@ fun SettingsScreen(
                             text = if (isClearingCache) "Limpando..." else "Limpar cache",
                             onClick = { viewModel.clearCache() },
                             enabled = !isClearingCache,
+                        )
+                    }
+                }
+            }
+
+            val crash = lastCrash
+            if (crash != null) {
+                SectionCard(modifier = Modifier.width(760.dp)) {
+                    Column {
+                        SettingsHeading(
+                            title = "Último erro",
+                            subtitle = "O app fechou sozinho. Este é o motivo registrado.",
+                        )
+                        Text(
+                            text = crash.take(1200),
+                            color = BrandError,
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                        PillButton(
+                            text = "Limpar registro",
+                            onClick = { viewModel.clearLastCrash() },
+                            modifier = Modifier.padding(top = 12.dp),
                         )
                     }
                 }
