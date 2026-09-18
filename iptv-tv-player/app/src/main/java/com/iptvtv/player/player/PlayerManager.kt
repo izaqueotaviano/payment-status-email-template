@@ -41,6 +41,9 @@ class PlayerManager(context: Context) {
             /* bufferForPlaybackMs = */ 1_500,
             /* bufferForPlaybackAfterRebufferMs = */ 3_000,
         )
+        // The duration cap alone does not bound memory: without a byte target the allocator is
+        // free to keep growing for a high-bitrate stream.
+        .setTargetBufferBytes(24 * 1024 * 1024)
         .build()
 
     val exoPlayer: ExoPlayer = ExoPlayer.Builder(context)

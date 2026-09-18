@@ -34,6 +34,9 @@ class ChannelRepositoryImpl(
     override suspend fun getChannel(id: Long): Channel? =
         dao.getById(id)?.toDomain()
 
+    override fun observeVisibleChannelIds(sourceId: Long): Flow<List<Long>> =
+        dao.observeVisibleIds(sourceId)
+
     override suspend fun replaceChannelsForSource(sourceId: Long, freshChannels: List<Channel>) {
         if (freshChannels.isEmpty()) {
             // Providers answer with an HTML error or maintenance page under HTTP 200 often
@@ -53,12 +56,17 @@ class ChannelRepositoryImpl(
         for (fresh in freshChannels) {
             val existingEntity = existingByKey[fresh.streamKey]
             if (existingEntity != null) {
-                toUpdate += existingEntity.copy(
+                val refreshed = existingEntity.copy(
                     originalName = fresh.originalName,
                     logoUrl = fresh.logoUrl,
                     streamUrl = fresh.streamUrl,
                     originalGroup = fresh.originalGroup,
                 )
+                // Re-opening the list re-imports the same playlist; without this every row of it
+                // would be rewritten, and held in memory to be rewritten, on every single open.
+                if (refreshed != existingEntity) {
+                    toUpdate += refreshed
+                }
             } else {
                 toInsert += fresh.toEntity().copy(
                     id = 0,

@@ -18,6 +18,14 @@ interface ChannelDao {
     @Query("SELECT * FROM channels WHERE sourceId = :sourceId ORDER BY sortOrder")
     suspend fun getAllForSourceOnce(sourceId: Long): List<ChannelEntity>
 
+    /**
+     * Just the ids, in order: all the player needs for previous/next. Observing full rows there
+     * would mean a second complete copy of a playlist that can run to tens of thousands of
+     * channels, and would delay playback until the whole query and mapping finished.
+     */
+    @Query("SELECT id FROM channels WHERE sourceId = :sourceId AND isHidden = 0 ORDER BY sortOrder")
+    fun observeVisibleIds(sourceId: Long): Flow<List<Long>>
+
     @Insert
     suspend fun insertAll(entities: List<ChannelEntity>)
 

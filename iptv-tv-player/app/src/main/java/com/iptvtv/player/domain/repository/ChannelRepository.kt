@@ -9,6 +9,9 @@ interface ChannelRepository {
 
     suspend fun getChannel(id: Long): Channel?
 
+    /** Ids of the visible channels of [sourceId], in display order. */
+    fun observeVisibleChannelIds(sourceId: Long): Flow<List<Long>>
+
     /**
      * Persists the result of a (re-)import for [sourceId].
      *

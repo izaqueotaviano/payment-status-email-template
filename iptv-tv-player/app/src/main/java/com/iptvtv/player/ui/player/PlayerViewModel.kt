@@ -16,6 +16,7 @@ import com.iptvtv.player.domain.repository.ChannelRepository
 import com.iptvtv.player.domain.repository.SettingsRepository
 import com.iptvtv.player.player.PlayerManager
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -66,10 +67,15 @@ class PlayerViewModel(
     /** Maps a [TrackOption.id] back to the group and index needed to build a selection override. */
     private var trackRefs: Map<String, Pair<TrackGroup, Int>> = emptyMap()
 
-    /** Visible, ordered channel list used to resolve prev/next. Kept in sync with the repository. */
-    private var visibleChannels: List<Channel> = emptyList()
+    /**
+     * Ids of the visible channels, in order, used to resolve prev/next.
+     *
+     * Only the ids: observing whole rows here would hold a second full copy of a playlist that
+     * can run to tens of thousands of channels, on top of the one the channel list screen still
+     * has behind it on the back stack.
+     */
+    private var visibleChannelIds: List<Long> = emptyList()
     private var currentIndex: Int = -1
-    private var hasResolvedInitialChannel = false
 
     init {
         player.addListener(object : Player.Listener {
@@ -95,46 +101,42 @@ class PlayerViewModel(
 
     fun start(sourceId: Long, initialChannelId: Long) {
         viewModelScope.launch {
-            channelRepository.observeChannels(sourceId).collect { channels ->
-                val visible = channels.filter { !it.isHidden }.sortedBy { it.sortOrder }
-                visibleChannels = visible
+            try {
+                // Start playing straight away: waiting for the channel list would delay the
+                // first frame by a whole query and mapping of the playlist.
+                channelRepository.getChannel(initialChannelId)?.let { playChannel(it) }
 
-                if (!hasResolvedInitialChannel) {
-                    hasResolvedInitialChannel = true
-                    val index = visible.indexOfFirst { it.id == initialChannelId }
-                    if (index >= 0) {
-                        currentIndex = index
-                        playChannel(visible[index])
-                    } else {
-                        val fallback = channelRepository.getChannel(initialChannelId)
-                        if (fallback != null) {
-                            playChannel(fallback)
-                        }
-                    }
-                } else {
-                    // The list changed after we started (a resync, a hide/show, a reorder...) -
-                    // keep currentIndex pointing at whatever channel is actually on screen so
-                    // next()/previous() don't silently desync from it.
-                    val playingId = _currentChannel.value?.id
-                    if (playingId != null) {
-                        val newIndex = visible.indexOfFirst { it.id == playingId }
-                        if (newIndex >= 0) currentIndex = newIndex
-                    }
+                channelRepository.observeVisibleChannelIds(sourceId).collect { ids ->
+                    visibleChannelIds = ids
+                    // The list can change under playback (a re-sync, a hide, a reorder), so keep
+                    // the cursor on whatever is actually on screen.
+                    val playingId = _currentChannel.value?.id ?: initialChannelId
+                    currentIndex = ids.indexOf(playingId)
                 }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Throwable) {
+                // Nothing here may escape: this coroutine has no supervisor, so a throw would
+                // take the whole process down instead of showing a message.
+                _errorMessage.value = error.message ?: "Não foi possível iniciar o canal."
             }
         }
     }
 
-    fun next() {
-        if (visibleChannels.isEmpty() || currentIndex < 0) return
-        currentIndex = (currentIndex + 1).mod(visibleChannels.size)
-        playChannel(visibleChannels[currentIndex])
-    }
+    fun next() = playAt(currentIndex + 1)
 
-    fun previous() {
-        if (visibleChannels.isEmpty() || currentIndex < 0) return
-        currentIndex = (currentIndex - 1).mod(visibleChannels.size)
-        playChannel(visibleChannels[currentIndex])
+    fun previous() = playAt(currentIndex - 1)
+
+    private fun playAt(index: Int) {
+        val ids = visibleChannelIds
+        if (ids.isEmpty()) return
+        val targetIndex = index.mod(ids.size)
+        currentIndex = targetIndex
+        viewModelScope.launch {
+            runCatching { channelRepository.getChannel(ids[targetIndex]) }
+                .getOrNull()
+                ?.let { playChannel(it) }
+        }
     }
 
     fun togglePlayPause() {
