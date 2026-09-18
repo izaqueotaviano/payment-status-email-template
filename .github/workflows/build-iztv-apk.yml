@@ -36,7 +36,7 @@ jobs:
           for coord in \
             "androidx/tv/tv-foundation" \
             "androidx/tv/tv-material" \
-            "androidx/compose/bom/compose-bom" \
+            "androidx/compose/compose-bom" \
             "androidx/media3/media3-exoplayer" \
             "androidx/room/room-runtime" \
             "androidx/datastore/datastore-preferences" \
@@ -49,8 +49,13 @@ jobs:
             echo "=== $coord ==="
             meta="$(curl -s "https://dl.google.com/dl/android/maven2/$coord/maven-metadata.xml")"
             echo "$meta" | grep -oE '<release>[^<]+</release>|<latest>[^<]+</latest>' || true
-            echo "$meta" | grep -oE '<version>[^<]+</version>' | tail -5 || true
+            echo "last 3 stable:"
+            echo "$meta" | grep -oE '<version>[^<]+</version>' | sed -E 's/<\/?version>//g' \
+              | grep -Ev -- '-alpha|-beta|-rc|-dev|-M[0-9]' | tail -3 || true
           done
+
+      - name: Print current Gradle versions (diagnostic)
+        run: curl -s https://services.gradle.org/versions/current
 
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@v4
