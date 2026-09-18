@@ -3,35 +3,50 @@ package com.iptvtv.player.ui.sources
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.tv.material3.Button
-import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.Surface
+import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import com.iptvtv.player.domain.model.Source
+import com.iptvtv.player.ui.components.AppBackground
+import com.iptvtv.player.ui.components.PillButton
+import com.iptvtv.player.ui.components.SectionCard
 import com.iptvtv.player.ui.sources.components.LabeledTextField
+import com.iptvtv.player.ui.theme.BrandError
+import com.iptvtv.player.ui.theme.BrandMuted
+import com.iptvtv.player.ui.theme.BrandOnSurface
 
 private fun effectiveFormType(loaded: Source?, sourceType: String?): String = when (loaded) {
     is Source.M3uUrlSource -> "m3u"
     is Source.XtreamSource -> "xtream"
     is Source.LocalFileSource -> "local"
     null -> sourceType ?: "m3u"
+}
+
+private fun formTypeLabel(formType: String): String = when (formType) {
+    "xtream" -> "Conta Xtream Codes"
+    "local" -> "Arquivo local"
+    else -> "Lista M3U por URL"
 }
 
 @Composable
@@ -104,84 +119,112 @@ fun AddEditSourceScreen(
         }
     }
 
-    Surface(modifier = Modifier.fillMaxSize()) {
+    AppBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = 56.dp, vertical = 36.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Text(
-                text = if (sourceId != null) "Editar fonte" else "Nova fonte",
-                style = MaterialTheme.typography.headlineMedium,
-            )
+            Column {
+                Text(
+                    text = if (sourceId != null) "Editar fonte" else "Nova fonte",
+                    color = BrandOnSurface,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(text = formTypeLabel(formType), color = BrandMuted, fontSize = 14.sp)
+            }
 
-            when (formType) {
-                "m3u" -> {
-                    LabeledTextField(label = "Nome", value = name, onValueChange = { name = it })
-                    LabeledTextField(
-                        label = "URL da lista M3U/M3U8",
-                        value = url,
-                        onValueChange = { url = it },
-                        keyboardType = KeyboardType.Uri,
-                    )
-                }
-                "xtream" -> {
-                    LabeledTextField(label = "Nome", value = name, onValueChange = { name = it })
-                    LabeledTextField(label = "Host", value = host, onValueChange = { host = it })
-                    LabeledTextField(
-                        label = "Porta (opcional)",
-                        value = port,
-                        onValueChange = { port = it },
-                        keyboardType = KeyboardType.Number,
-                    )
-                    LabeledTextField(label = "Usuário", value = username, onValueChange = { username = it })
-                    LabeledTextField(
-                        label = "Senha",
-                        value = password,
-                        onValueChange = { password = it },
-                        isPassword = true,
-                    )
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(text = "Usar HTTPS", style = MaterialTheme.typography.labelMedium)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(onClick = { useHttps = true }) {
-                                Text(text = if (useHttps) "✓ Sim" else "Sim")
-                            }
-                            Button(onClick = { useHttps = false }) {
-                                Text(text = if (!useHttps) "✓ Não" else "Não")
+            SectionCard(modifier = Modifier.width(680.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    when (formType) {
+                        "m3u" -> {
+                            LabeledTextField(label = "Nome", value = name, onValueChange = { name = it })
+                            LabeledTextField(
+                                label = "URL da lista M3U/M3U8",
+                                value = url,
+                                onValueChange = { url = it },
+                                keyboardType = KeyboardType.Uri,
+                            )
+                        }
+                        "xtream" -> {
+                            LabeledTextField(label = "Nome", value = name, onValueChange = { name = it })
+                            LabeledTextField(label = "Host", value = host, onValueChange = { host = it })
+                            LabeledTextField(
+                                label = "Porta (opcional)",
+                                value = port,
+                                onValueChange = { port = it },
+                                keyboardType = KeyboardType.Number,
+                            )
+                            LabeledTextField(label = "Usuário", value = username, onValueChange = { username = it })
+                            LabeledTextField(
+                                label = "Senha",
+                                value = password,
+                                onValueChange = { password = it },
+                                isPassword = true,
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = "Conexão segura (HTTPS)",
+                                    color = BrandMuted,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    PillButton(
+                                        text = "Sim",
+                                        onClick = { useHttps = true },
+                                        primary = useHttps,
+                                    )
+                                    PillButton(
+                                        text = "Não",
+                                        onClick = { useHttps = false },
+                                        primary = !useHttps,
+                                    )
+                                }
                             }
                         }
+                        "local" -> {
+                            LabeledTextField(label = "Nome", value = name, onValueChange = { name = it })
+                            PillButton(
+                                text = "Selecionar arquivo",
+                                onClick = { filePickerLauncher.launch(arrayOf("*/*")) },
+                            )
+                            Text(
+                                text = if (pickedFileUri != null) "Arquivo selecionado" else "Nenhum arquivo selecionado",
+                                color = BrandMuted,
+                                fontSize = 13.sp,
+                            )
+                        }
                     }
-                }
-                "local" -> {
-                    LabeledTextField(label = "Nome", value = name, onValueChange = { name = it })
-                    Button(onClick = { filePickerLauncher.launch(arrayOf("*/*")) }) {
-                        Text(text = "Selecionar arquivo")
-                    }
-                    Text(
-                        text = pickedFileUri?.let { "Arquivo selecionado" } ?: "Nenhum arquivo selecionado",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
                 }
             }
 
             val currentError = (saveState as? SaveState.Error)?.message
             if (currentError != null) {
-                Text(text = currentError, color = MaterialTheme.colorScheme.error)
+                Text(
+                    text = currentError,
+                    color = BrandError,
+                    fontSize = 13.sp,
+                    modifier = Modifier
+                        .width(680.dp)
+                        .background(Color(0x33FF6B81), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                )
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 val canSave = when (formType) {
                     "m3u" -> name.isNotBlank() && url.isNotBlank()
                     "xtream" -> name.isNotBlank() && host.isNotBlank() && username.isNotBlank() && password.isNotBlank()
                     "local" -> name.isNotBlank() && pickedFileUri != null
                     else -> false
                 }
-                Button(
+                PillButton(
+                    text = if (saveState is SaveState.Saving) "Salvando..." else "Salvar",
+                    primary = true,
+                    enabled = canSave && saveState !is SaveState.Saving,
                     onClick = {
                         val sourceToSave = when (formType) {
                             "m3u" -> Source.M3uUrlSource(id = sourceId ?: 0, name = name, url = url)
@@ -197,19 +240,14 @@ fun AddEditSourceScreen(
                             "local" -> Source.LocalFileSource(
                                 id = sourceId ?: 0,
                                 name = name,
-                                fileUri = pickedFileUri ?: return@Button,
+                                fileUri = pickedFileUri ?: return@PillButton,
                             )
-                            else -> return@Button
+                            else -> return@PillButton
                         }
                         viewModel.save(sourceToSave)
                     },
-                    enabled = canSave && saveState !is SaveState.Saving,
-                ) {
-                    Text(text = if (saveState is SaveState.Saving) "Salvando..." else "Salvar")
-                }
-                Button(onClick = onCancel) {
-                    Text(text = "Cancelar")
-                }
+                )
+                PillButton(text = "Cancelar", onClick = onCancel)
             }
         }
     }

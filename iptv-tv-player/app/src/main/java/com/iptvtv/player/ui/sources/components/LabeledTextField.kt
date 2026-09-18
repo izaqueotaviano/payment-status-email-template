@@ -1,30 +1,37 @@
 package com.iptvtv.player.ui.sources.components
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.tv.material3.MaterialTheme
+import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
+import com.iptvtv.player.ui.theme.BrandMuted
+import com.iptvtv.player.ui.theme.BrandOnSurface
+import com.iptvtv.player.ui.theme.BrandOutline
+import com.iptvtv.player.ui.theme.BrandPrimary
+import com.iptvtv.player.ui.theme.BrandSurfaceVariant
 
 /**
- * A simple labeled text input field for D-pad friendly forms.
- * There is no TV-specific TextField component available, so this wraps a [BasicTextField]
- * with a label and a border that highlights when the field has focus.
+ * Labeled text input for D-pad friendly forms. Compose for TV has no TextField component, so
+ * this wraps a [BasicTextField] with a label and a border that lights up when focused.
  */
 @Composable
 fun LabeledTextField(
@@ -36,31 +43,36 @@ fun LabeledTextField(
     keyboardType: KeyboardType = KeyboardType.Text,
     singleLine: Boolean = true,
 ) {
-    var isFocused by remember { mutableStateOf(false) }
-    val contentColor = MaterialTheme.colorScheme.onSurface
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    val shape = RoundedCornerShape(12.dp)
 
     Column(modifier = modifier.fillMaxWidth()) {
-        Text(text = label, style = MaterialTheme.typography.labelMedium)
+        Text(
+            text = label,
+            color = BrandMuted,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = singleLine,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(color = contentColor),
+            textStyle = TextStyle(color = BrandOnSurface, fontSize = 15.sp),
             visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
-            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = keyboardType),
-            cursorBrush = androidx.compose.ui.graphics.SolidColor(contentColor),
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            cursorBrush = SolidColor(BrandPrimary),
+            interactionSource = interactionSource,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 4.dp)
+                .padding(top = 6.dp)
+                .background(BrandSurfaceVariant, shape)
                 .border(
-                    border = BorderStroke(
-                        width = if (isFocused) 2.dp else 1.dp,
-                        color = if (isFocused) MaterialTheme.colorScheme.primary else contentColor.copy(alpha = 0.4f),
-                    ),
-                    shape = RoundedCornerShape(4.dp),
+                    width = if (isFocused) 2.dp else 1.dp,
+                    color = if (isFocused) BrandPrimary else BrandOutline,
+                    shape = shape,
                 )
-                .onFocusChanged { isFocused = it.isFocused }
-                .padding(12.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
         )
     }
 }

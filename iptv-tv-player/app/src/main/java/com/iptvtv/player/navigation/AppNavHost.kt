@@ -10,6 +10,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -21,6 +23,8 @@ import com.iptvtv.player.di.AppContainer
 import com.iptvtv.player.di.AppViewModelFactory
 import com.iptvtv.player.ui.channels.ChannelListScreen
 import com.iptvtv.player.ui.channels.ChannelListViewModel
+import com.iptvtv.player.ui.components.AppBackground
+import com.iptvtv.player.ui.theme.BrandOnSurface
 import com.iptvtv.player.ui.player.PlayerScreen
 import com.iptvtv.player.ui.player.PlayerViewModel
 import com.iptvtv.player.ui.settings.SettingsScreen
@@ -54,8 +58,15 @@ fun AppNavHost(container: AppContainer) {
 
     val destination = startDestination
     if (destination == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = "Carregando...")
+        AppBackground {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "iztv",
+                    color = BrandOnSurface,
+                    fontSize = 34.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         }
         return
     }
@@ -102,6 +113,7 @@ fun AppNavHost(container: AppContainer) {
                 viewModel = vm,
                 sourceId = sourceId,
                 onChannelClick = { channelId -> navController.navigate(Routes.player(sourceId, channelId)) },
+                onOpenSources = { navController.navigate(Routes.SOURCES) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
             )
         }

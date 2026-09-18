@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -44,25 +45,31 @@ class ChannelListViewModel(
     val searchQuery = MutableStateFlow("")
     val favoritesOnly = MutableStateFlow(false)
 
-    val groupedChannels: StateFlow<Map<String, List<Channel>>> = combine(
+    /** The category chip currently applied, or null for "all categories". */
+    val selectedGroup = MutableStateFlow<String?>(null)
+
+    val groups: StateFlow<List<String>> = allChannels
+        .map { channels -> channels.filterNot { it.isHidden }.map { it.displayGroup }.distinct().sorted() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val visibleChannels: StateFlow<List<Channel>> = combine(
         allChannels,
         searchQuery,
         favoritesOnly,
-    ) { channels, query, favOnly ->
+        selectedGroup,
+    ) { channels, query, favOnly, group ->
         var visible = channels.filterNot { it.isHidden }
         if (favOnly) {
             visible = visible.filter { it.isFavorite }
         }
+        if (group != null) {
+            visible = visible.filter { it.displayGroup == group }
+        }
         if (query.isNotBlank()) {
             visible = visible.filter { it.displayName.contains(query, ignoreCase = true) }
         }
-        val sorted = visible.sortedBy { it.sortOrder }
-        when {
-            sorted.isEmpty() -> emptyMap()
-            favOnly -> mapOf("Favoritos" to sorted)
-            else -> sorted.groupBy { it.displayGroup }
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+        visible.sortedBy { it.sortOrder }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val isRefreshingFlow = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = isRefreshingFlow

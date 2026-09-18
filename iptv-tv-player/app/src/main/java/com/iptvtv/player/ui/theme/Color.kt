@@ -1,9 +1,25 @@
 package com.iptvtv.player.ui.theme
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-val BrandPrimary = Color(0xFF2962FF)
-val BrandBackground = Color(0xFF0D0D0F)
-val BrandSurface = Color(0xFF1A1A1E)
-val BrandOnSurface = Color(0xFFF2F2F2)
-val BrandMuted = Color(0xFF8A8A93)
+val BrandBackground = Color(0xFF0A0910)
+val BrandSurface = Color(0xFF16141F)
+val BrandSurfaceVariant = Color(0xFF211D2E)
+val BrandOutline = Color(0xFF322C46)
+
+val BrandPrimary = Color(0xFF9B5CF6)
+val BrandPrimaryDeep = Color(0xFF6D28D9)
+val BrandAccent = Color(0xFFE879C8)
+
+val BrandOnSurface = Color(0xFFF4F1FB)
+val BrandMuted = Color(0xFF9A93AE)
+val BrandError = Color(0xFFFF6B81)
+
+/** Violet to magenta sweep used on primary actions and the active navigation marker. */
+val BrandGradient = Brush.horizontalGradient(listOf(BrandPrimaryDeep, BrandPrimary, BrandAccent))
+
+/** Soft highlight that trails off to the right, used behind the focused row of a list. */
+val FocusRowGradient = Brush.horizontalGradient(
+    listOf(BrandPrimary.copy(alpha = 0.45f), BrandPrimary.copy(alpha = 0.10f), Color.Transparent),
+)
