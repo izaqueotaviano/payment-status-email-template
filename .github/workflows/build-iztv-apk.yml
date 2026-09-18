@@ -34,13 +34,23 @@ jobs:
           LEVELS="$("$SDKMANAGER" --list 2>/dev/null | grep -oE 'platforms;android-[0-9]+' | grep -oE '[0-9]+' | sort -rn -u)"
           echo "=== candidate platform levels (highest first) ==="
           echo "$LEVELS"
+          echo "=== any package mentioning '37' (stable + canary channels, for debugging) ==="
+          "$SDKMANAGER" --list 2>/dev/null | grep -i "37" || true
+          "$SDKMANAGER" --channel=3 --list 2>/dev/null | grep -i "37" || true
 
           INSTALLED_LEVEL=""
           for level in $LEVELS; do
-            echo "--- trying platforms;android-$level ---"
+            echo "--- trying platforms;android-$level (stable channel) ---"
             if "$SDKMANAGER" "platforms;android-$level" > /tmp/sdk_install.log 2>&1 && ! grep -q "Failed to find package" /tmp/sdk_install.log; then
               INSTALLED_LEVEL="$level"
-              echo "Installed platforms;android-$level"
+              echo "Installed platforms;android-$level (stable channel)"
+              break
+            fi
+            cat /tmp/sdk_install.log
+            echo "--- trying platforms;android-$level (canary channel) ---"
+            if "$SDKMANAGER" --channel=3 "platforms;android-$level" > /tmp/sdk_install.log 2>&1 && ! grep -q "Failed to find package" /tmp/sdk_install.log; then
+              INSTALLED_LEVEL="$level"
+              echo "Installed platforms;android-$level (canary channel)"
               break
             fi
             cat /tmp/sdk_install.log
