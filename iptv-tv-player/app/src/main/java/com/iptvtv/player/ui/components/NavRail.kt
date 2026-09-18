@@ -48,9 +48,9 @@ fun NavRail(
     Column(
         modifier = modifier
             .fillMaxHeight()
-            .width(196.dp)
+            .width(172.dp)
             .background(Color(0xCC121020))
-            .padding(horizontal = 16.dp, vertical = 28.dp),
+            .padding(horizontal = 14.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
@@ -136,7 +136,7 @@ private fun NavRailItem(
             )
             .clickOnSelect(onClick)
             .focusable(interactionSource = interactionSource)
-            .padding(horizontal = 12.dp, vertical = 12.dp),
+            .padding(horizontal = 11.dp, vertical = 11.dp),
     ) {
         icon(contentColor, Modifier.size(17.dp))
         Text(

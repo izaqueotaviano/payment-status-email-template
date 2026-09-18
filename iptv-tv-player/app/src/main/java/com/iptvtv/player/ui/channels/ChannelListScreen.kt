@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -129,7 +128,7 @@ fun ChannelListScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .padding(horizontal = 32.dp, vertical = 26.dp),
+                    .padding(horizontal = 26.dp, vertical = 22.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.weight(1f)) {
@@ -260,7 +259,7 @@ fun ChannelListScreen(
                             onPlay = { onChannelClick(previewChannel.id) },
                             onToggleFavorite = { viewModel.toggleFavorite(previewChannel) },
                             onEdit = { dialogChannel = previewChannel },
-                            modifier = Modifier.padding(start = 28.dp).width(390.dp).fillMaxHeight(),
+                            modifier = Modifier.padding(start = 22.dp).width(330.dp).fillMaxHeight(),
                         )
                     }
                 }
@@ -333,15 +332,17 @@ private fun PreviewPanel(
         modifier = modifier
             .background(BrandSurface.copy(alpha = 0.9f), shape)
             .border(1.dp, BrandOutline, shape)
-            .padding(20.dp),
+            .padding(18.dp),
     ) {
+        // The artwork takes whatever height is left so the actions below always stay on screen,
+        // however short the panel gets.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(16f / 9f)
+                .weight(1f)
                 .background(
                     Brush.linearGradient(listOf(Color(0xFF2A1C4A), Color(0xFF14121F))),
-                    RoundedCornerShape(16.dp),
+                    RoundedCornerShape(15.dp),
                 ),
             contentAlignment = Alignment.Center,
         ) {
@@ -366,7 +367,7 @@ private fun PreviewPanel(
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(top = 18.dp),
+            modifier = Modifier.padding(top = 14.dp),
         ) {
             Box(
                 modifier = Modifier
@@ -394,23 +395,23 @@ private fun PreviewPanel(
         Text(
             text = channel.displayName,
             color = BrandOnSurface,
-            fontSize = 26.sp,
+            fontSize = 23.sp,
             fontWeight = FontWeight.Bold,
-            maxLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier.padding(top = 6.dp),
         )
 
         Text(
             text = channel.displayGroup,
             color = BrandMuted,
-            fontSize = 14.sp,
+            fontSize = 13.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 4.dp),
+            modifier = Modifier.padding(top = 3.dp),
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         PillButton(
             text = "Assistir agora",
@@ -419,7 +420,7 @@ private fun PreviewPanel(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Row(modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
             PillButton(
                 text = if (channel.isFavorite) "Remover" else "Favoritar",
                 onClick = onToggleFavorite,
@@ -428,15 +429,8 @@ private fun PreviewPanel(
             PillButton(
                 text = "Editar",
                 onClick = onEdit,
-                modifier = Modifier.padding(start = 10.dp).weight(1f),
+                modifier = Modifier.padding(start = 8.dp).weight(1f),
             )
         }
-
-        Text(
-            text = "Segure OK em um canal para editar",
-            color = BrandMuted,
-            fontSize = 11.sp,
-            modifier = Modifier.padding(top = 14.dp),
-        )
     }
 }

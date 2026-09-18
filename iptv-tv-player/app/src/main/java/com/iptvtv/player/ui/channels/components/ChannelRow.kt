@@ -41,6 +41,7 @@ import com.iptvtv.player.ui.theme.BrandAccent
 import com.iptvtv.player.ui.theme.BrandGradient
 import com.iptvtv.player.ui.theme.BrandMuted
 import com.iptvtv.player.ui.theme.BrandOnSurface
+import com.iptvtv.player.ui.theme.BrandPrimary
 import com.iptvtv.player.ui.theme.BrandSurfaceVariant
 import com.iptvtv.player.ui.theme.FocusRowGradient
 
@@ -78,7 +79,7 @@ fun ChannelRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .height(66.dp)
+            .height(62.dp)
             .then(rowBackground)
             .onFocusChanged { state -> if (state.isFocused) onFocused() }
             .onKeyEvent { event ->
@@ -104,15 +105,15 @@ fun ChannelRow(
         Text(
             text = (position + 1).toString().padStart(3, '0'),
             color = if (isFocused) Color.White else BrandMuted,
-            fontSize = 13.sp,
-            modifier = Modifier.padding(start = 12.dp).width(36.dp),
+            fontSize = 12.sp,
+            modifier = Modifier.padding(start = 10.dp).width(28.dp),
         )
 
         Box(
             modifier = Modifier
-                .padding(start = 6.dp)
-                .size(width = 54.dp, height = 38.dp)
-                .background(BrandSurfaceVariant, RoundedCornerShape(9.dp)),
+                .padding(start = 8.dp)
+                .size(width = 46.dp, height = 32.dp)
+                .background(BrandSurfaceVariant, RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center,
         ) {
             if (channel.logoUrl != null) {
@@ -132,11 +133,11 @@ fun ChannelRow(
             }
         }
 
-        Column(modifier = Modifier.padding(start = 16.dp).weight(1f)) {
+        Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
             Text(
                 text = channel.displayName,
                 color = if (isFocused) Color.White else BrandOnSurface,
-                fontSize = 16.sp,
+                fontSize = 15.sp,
                 fontWeight = if (isFocused) FontWeight.SemiBold else FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -151,17 +152,16 @@ fun ChannelRow(
         }
 
         if (isDefault) {
-            Text(
-                text = "PADRÃO",
-                color = BrandAccent,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(end = 10.dp),
+            Box(
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .size(6.dp)
+                    .background(BrandPrimary, RoundedCornerShape(3.dp)),
             )
         }
 
         if (channel.isFavorite) {
-            StarIcon(color = BrandAccent, modifier = Modifier.size(14.dp))
+            StarIcon(color = BrandAccent, modifier = Modifier.padding(start = 8.dp).size(13.dp))
         }
     }
 }
