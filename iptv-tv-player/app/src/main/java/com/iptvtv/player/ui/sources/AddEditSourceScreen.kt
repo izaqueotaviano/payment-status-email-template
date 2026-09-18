@@ -30,11 +30,13 @@ import androidx.tv.material3.Text
 import com.iptvtv.player.domain.model.Source
 import com.iptvtv.player.ui.components.AppBackground
 import com.iptvtv.player.ui.components.PillButton
+import com.iptvtv.player.ui.components.ProgressBar
 import com.iptvtv.player.ui.components.SectionCard
 import com.iptvtv.player.ui.sources.components.LabeledTextField
 import com.iptvtv.player.ui.theme.BrandError
 import com.iptvtv.player.ui.theme.BrandMuted
 import com.iptvtv.player.ui.theme.BrandOnSurface
+import kotlinx.coroutines.delay
 
 private fun effectiveFormType(loaded: Source?, sourceType: String?): String = when (loaded) {
     is Source.M3uUrlSource -> "m3u"
@@ -70,6 +72,8 @@ fun AddEditSourceScreen(
 
     LaunchedEffect(saveState) {
         if (saveState is SaveState.Success) {
+            // Hold the confirmation on screen long enough to be read before leaving.
+            delay(1200)
             onDone()
         }
     }
@@ -201,6 +205,35 @@ fun AddEditSourceScreen(
                 }
             }
 
+            val savingStage = (saveState as? SaveState.Saving)?.stage
+            if (savingStage != null) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.width(680.dp),
+                ) {
+                    Text(text = savingStage.label, color = BrandOnSurface, fontSize = 15.sp)
+                    ProgressBar()
+                    Text(
+                        text = "Listas grandes podem levar um tempo. Não feche o app.",
+                        color = BrandMuted,
+                        fontSize = 12.sp,
+                    )
+                }
+            }
+
+            val savedCount = (saveState as? SaveState.Success)?.channelCount
+            if (savedCount != null) {
+                Text(
+                    text = "Pronto! $savedCount canais importados.",
+                    color = BrandOnSurface,
+                    fontSize = 15.sp,
+                    modifier = Modifier
+                        .width(680.dp)
+                        .background(Color(0x332ECC71), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                )
+            }
+
             val currentError = (saveState as? SaveState.Error)?.message
             if (currentError != null) {
                 Text(
@@ -222,9 +255,13 @@ fun AddEditSourceScreen(
                     else -> false
                 }
                 PillButton(
-                    text = if (saveState is SaveState.Saving) "Salvando..." else "Salvar",
+                    text = when (saveState) {
+                        is SaveState.Saving -> "Salvando..."
+                        is SaveState.Success -> "Salvo"
+                        else -> "Salvar"
+                    },
                     primary = true,
-                    enabled = canSave && saveState !is SaveState.Saving,
+                    enabled = canSave && saveState !is SaveState.Saving && saveState !is SaveState.Success,
                     onClick = {
                         val sourceToSave = when (formType) {
                             "m3u" -> Source.M3uUrlSource(id = sourceId ?: 0, name = name, url = url)

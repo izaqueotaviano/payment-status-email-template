@@ -1,5 +1,6 @@
 package com.iptvtv.player.ui.components
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
@@ -8,17 +9,25 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.graphics.Color
@@ -208,6 +217,40 @@ fun SearchField(
         },
     )
 }
+
+/**
+ * Indeterminate progress bar: a gradient block sweeping across a track.
+ *
+ * Driven by [withFrameMillis] rather than the animation APIs so it costs nothing beyond the
+ * frames it draws, and an import of unknown length still looks alive.
+ */
+@Composable
+fun ProgressBar(modifier: Modifier = Modifier) {
+    var phase by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(Unit) {
+        var firstFrame = 0L
+        while (true) {
+            withFrameMillis { frame ->
+                if (firstFrame == 0L) firstFrame = frame
+                phase = ((frame - firstFrame) % SWEEP_MS) / SWEEP_MS.toFloat()
+            }
+        }
+    }
+
+    Canvas(modifier = modifier.fillMaxWidth().height(4.dp)) {
+        val radius = CornerRadius(size.height / 2f, size.height / 2f)
+        drawRoundRect(color = BrandSurfaceVariant, cornerRadius = radius)
+        val blockWidth = size.width * 0.28f
+        drawRoundRect(
+            brush = BrandGradient,
+            topLeft = Offset(-blockWidth + phase * (size.width + blockWidth), 0f),
+            size = Size(blockWidth, size.height),
+            cornerRadius = radius,
+        )
+    }
+}
+
+private const val SWEEP_MS = 1400L
 
 /** Rounded translucent panel that groups related content. */
 @Composable

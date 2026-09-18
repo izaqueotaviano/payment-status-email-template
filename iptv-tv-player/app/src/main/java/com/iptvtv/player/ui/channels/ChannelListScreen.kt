@@ -48,6 +48,7 @@ import com.iptvtv.player.ui.components.NavRail
 import com.iptvtv.player.ui.components.NavSection
 import com.iptvtv.player.ui.components.PillButton
 import com.iptvtv.player.ui.components.PlayIcon
+import com.iptvtv.player.ui.components.ProgressBar
 import com.iptvtv.player.ui.components.SearchField
 import com.iptvtv.player.ui.theme.BrandAccent
 import com.iptvtv.player.ui.theme.BrandError
@@ -81,6 +82,7 @@ fun ChannelListScreen(
     val allChannels by viewModel.allChannels.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val syncError by viewModel.syncError.collectAsState()
+    val syncStage by viewModel.syncStage.collectAsState()
     val defaultChannelId by viewModel.defaultChannelId.collectAsState()
 
     val showHidden by viewModel.showHidden.collectAsState()
@@ -242,6 +244,17 @@ fun ChannelListScreen(
                     }
                 }
 
+                val stage = syncStage
+                if (stage != null) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                    ) {
+                        Text(text = stage.label, color = BrandOnSurface, fontSize = 13.sp)
+                        ProgressBar()
+                    }
+                }
+
                 val error = syncError
                 if (error != null) {
                     Text(
@@ -263,6 +276,7 @@ fun ChannelListScreen(
                         if (channels.isEmpty()) {
                             EmptyState(
                                 isRefreshing = isRefreshing,
+                                stageLabel = syncStage?.label,
                                 hasFilters = hasFilters,
                                 onClearFilters = clearFilters,
                                 onRefresh = { viewModel.refresh() },
@@ -360,6 +374,7 @@ fun ChannelListScreen(
 @Composable
 private fun EmptyState(
     isRefreshing: Boolean,
+    stageLabel: String?,
     hasFilters: Boolean,
     onClearFilters: () -> Unit,
     onRefresh: () -> Unit,
@@ -368,14 +383,14 @@ private fun EmptyState(
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = if (isRefreshing) "Sincronizando canais..." else "Nenhum canal por aqui",
+                text = stageLabel ?: if (isRefreshing) "Sincronizando canais..." else "Nenhum canal por aqui",
                 color = BrandOnSurface,
                 fontSize = 19.sp,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
                 text = when {
-                    isRefreshing -> "Isso pode levar alguns segundos em listas grandes."
+                    isRefreshing -> "Listas grandes podem levar um tempo."
                     hasFilters -> "Nenhum canal corresponde aos filtros aplicados."
                     else -> "Importe uma fonte em Fontes para começar."
                 },
@@ -383,6 +398,11 @@ private fun EmptyState(
                 fontSize = 14.sp,
                 modifier = Modifier.padding(top = 6.dp),
             )
+            if (isRefreshing) {
+                ProgressBar(modifier = Modifier.width(280.dp).padding(top = 16.dp))
+            }
+            // Always composed: this button owns the focus while the list is empty, and a
+            // focusable that disappears mid-sync leaves the remote with nothing to hold.
             PillButton(
                 text = if (hasFilters) "Limpar filtros" else "Atualizar agora",
                 onClick = if (hasFilters) onClearFilters else onRefresh,
