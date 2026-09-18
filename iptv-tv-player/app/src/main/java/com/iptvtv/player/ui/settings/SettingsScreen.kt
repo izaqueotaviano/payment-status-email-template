@@ -78,7 +78,7 @@ fun SettingsScreen(
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(text = "Sobre", style = MaterialTheme.typography.titleMedium)
-                Text(text = "IPTV Player")
+                Text(text = "iztv")
                 Text(text = "Versão ${BuildConfig.VERSION_NAME}")
             }
         }

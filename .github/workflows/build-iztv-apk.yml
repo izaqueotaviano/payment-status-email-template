@@ -1,0 +1,52 @@
+name: Build iztv APK
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Grant execute permission for gradlew
+        working-directory: iptv-tv-player
+        run: chmod +x gradlew
+
+      - name: Build release APK
+        working-directory: iptv-tv-player
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Rename APK
+        working-directory: iptv-tv-player
+        run: cp app/build/outputs/apk/release/app-release.apk iztv.apk
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: iztv-latest
+          name: iztv (build automático)
+          body: |
+            APK gerado automaticamente pelo GitHub Actions a partir do commit ${{ github.sha }} (branch `${{ github.ref_name }}`).
+
+            Instale via sideload: pelo app Downloader (Android TV / Fire TV) usando a URL do arquivo `iztv.apk`
+            abaixo, ou via `adb install iztv.apk`. É preciso habilitar "Fontes desconhecidas" no aparelho antes.
+          files: iptv-tv-player/iztv.apk
+          make_latest: true

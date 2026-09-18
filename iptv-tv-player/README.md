@@ -1,4 +1,4 @@
-# IPTV Player (Android TV / Fire TV)
+# iztv (IPTV Player para Android TV / Fire TV)
 
 App Android nativo de player de IPTV, feito para **Android TV** e **Fire TV Stick**, para instalar via
 sideload (não requer Google Play / loja). Controle 100% pelo D-pad do controle remoto.
