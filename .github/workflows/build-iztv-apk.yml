@@ -31,26 +31,29 @@ jobs:
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses > /dev/null || true
 
-          LEVELS="$("$SDKMANAGER" --list 2>/dev/null | grep -oE 'platforms;android-[0-9]+' | grep -oE '[0-9]+' | sort -rn -u)"
-          echo "=== candidate platform levels (highest first) ==="
-          echo "$LEVELS"
-          echo "=== any package mentioning '37' (stable + canary channels, for debugging) ==="
-          "$SDKMANAGER" --list 2>/dev/null | grep -i "37" || true
-          "$SDKMANAGER" --channel=3 --list 2>/dev/null | grep -i "37" || true
+          # Platforms are sometimes published with a minor-revision suffix
+          # (e.g. "platforms;android-37.2"), not just a bare integer, and
+          # only the highest minor revision may actually be installable.
+          # Exclude betas/RCs - only real stable minor revisions.
+          PACKAGES="$("$SDKMANAGER" --list 2>/dev/null | grep -oE 'platforms;android-[0-9]+(\.[0-9]+)?' | grep -v -- '-beta\|-rc' | sort -t- -k2 -rV -u)"
+          echo "=== candidate platform packages (highest first) ==="
+          echo "$PACKAGES"
 
           INSTALLED_LEVEL=""
-          for level in $LEVELS; do
-            echo "--- trying platforms;android-$level (stable channel) ---"
-            if "$SDKMANAGER" "platforms;android-$level" > /tmp/sdk_install.log 2>&1 && ! grep -q "Failed to find package" /tmp/sdk_install.log; then
-              INSTALLED_LEVEL="$level"
-              echo "Installed platforms;android-$level (stable channel)"
+          for pkg in $PACKAGES; do
+            echo "--- trying $pkg (stable channel) ---"
+            if "$SDKMANAGER" "$pkg" > /tmp/sdk_install.log 2>&1 && ! grep -q "Failed to find package" /tmp/sdk_install.log; then
+              INSTALLED_LEVEL="${pkg#platforms;android-}"
+              INSTALLED_LEVEL="${INSTALLED_LEVEL%%.*}"
+              echo "Installed $pkg -> compileSdk $INSTALLED_LEVEL"
               break
             fi
             cat /tmp/sdk_install.log
-            echo "--- trying platforms;android-$level (canary channel) ---"
-            if "$SDKMANAGER" --channel=3 "platforms;android-$level" > /tmp/sdk_install.log 2>&1 && ! grep -q "Failed to find package" /tmp/sdk_install.log; then
-              INSTALLED_LEVEL="$level"
-              echo "Installed platforms;android-$level (canary channel)"
+            echo "--- trying $pkg (canary channel) ---"
+            if "$SDKMANAGER" --channel=3 "$pkg" > /tmp/sdk_install.log 2>&1 && ! grep -q "Failed to find package" /tmp/sdk_install.log; then
+              INSTALLED_LEVEL="${pkg#platforms;android-}"
+              INSTALLED_LEVEL="${INSTALLED_LEVEL%%.*}"
+              echo "Installed $pkg (canary channel) -> compileSdk $INSTALLED_LEVEL"
               break
             fi
             cat /tmp/sdk_install.log
