@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.Uri
 import com.iptvtv.player.data.remote.m3u.M3uParser
 import com.iptvtv.player.data.remote.m3u.ParsedM3uEntry
+import com.iptvtv.player.data.remote.xtream.XtreamCategory
+import com.iptvtv.player.data.remote.xtream.XtreamLiveStream
 import com.iptvtv.player.data.remote.xtream.buildXtreamStreamUrl
 import com.iptvtv.player.domain.model.Channel
 import com.iptvtv.player.domain.model.Source
@@ -11,10 +13,13 @@ import com.iptvtv.player.domain.usecase.PlaylistImporter
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.decodeFromString
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
 private const val DEFAULT_GROUP = "Geral"
+private val xtreamJson = Json { ignoreUnknownKeys = true }
 
 /**
  * Fetches and parses channels for a saved [Source]: an M3U playlist by URL, a local M3U file
@@ -58,9 +63,12 @@ class PlaylistImporterImpl(
         val baseUrl = source.baseUrl()
         val api = NetworkModule.provideXtreamApi(baseUrl, okHttpClient)
 
-        val categoryNamesById = api.getLiveCategories(source.username, source.password)
-            .associate { it.categoryId to it.categoryName }
-        val streams = api.getLiveStreams(source.username, source.password)
+        val categoriesJson = api.getLiveCategoriesJson(source.username, source.password)
+        val categories = xtreamJson.decodeFromString<List<XtreamCategory>>(categoriesJson)
+        val categoryNamesById = categories.associate { it.categoryId to it.categoryName }
+
+        val streamsJson = api.getLiveStreamsJson(source.username, source.password)
+        val streams = xtreamJson.decodeFromString<List<XtreamLiveStream>>(streamsJson)
 
         return streams.mapIndexed { index, stream ->
             val groupName = stream.categoryId

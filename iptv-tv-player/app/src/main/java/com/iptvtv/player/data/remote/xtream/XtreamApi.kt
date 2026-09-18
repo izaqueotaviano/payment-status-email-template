@@ -22,19 +22,22 @@ data class XtreamLiveStream(
 /** Xtream Codes `player_api.php` endpoints used to list live categories and streams. */
 interface XtreamApi {
 
+    // Returned as raw JSON text (see NetworkModule.provideXtreamApi) and decoded by the caller
+    // with kotlinx.serialization's reified decodeFromString - avoids depending on a
+    // java.lang.reflect.Type-based converter for generic list types.
     @GET("player_api.php")
-    suspend fun getLiveCategories(
+    suspend fun getLiveCategoriesJson(
         @Query("username") username: String,
         @Query("password") password: String,
         @Query("action") action: String = "get_live_categories",
-    ): List<XtreamCategory>
+    ): String
 
     @GET("player_api.php")
-    suspend fun getLiveStreams(
+    suspend fun getLiveStreamsJson(
         @Query("username") username: String,
         @Query("password") password: String,
         @Query("action") action: String = "get_live_streams",
-    ): List<XtreamLiveStream>
+    ): String
 }
 
 /**

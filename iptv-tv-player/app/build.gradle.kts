@@ -103,7 +103,6 @@ dependencies {
     implementation(libs.square.okhttp)
     implementation(libs.square.okhttp.logging)
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.kotlinx.coroutines.android)
 
     implementation(libs.coil.compose)
