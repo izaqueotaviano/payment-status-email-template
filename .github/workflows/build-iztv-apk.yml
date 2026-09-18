@@ -24,7 +24,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
+          # Dependency/toolchain versions have been changing between runs while
+          # debugging this workflow - a warm cache risks reusing stale Kotlin
+          # build-tools-api/compiler state. Leave caching off until the build is
+          # stable.
 
       - name: Ensure required Android SDK packages
         run: |
