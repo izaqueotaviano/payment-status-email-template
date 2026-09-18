@@ -23,9 +23,16 @@ object M3uParser {
 
     private val ATTRIBUTE_REGEX = Regex("""([A-Za-z0-9_-]+)="([^"]*)"""")
 
-    fun parse(content: String): List<ParsedM3uEntry> {
+    /** Convenience overload for callers that already hold the whole playlist as a [String]. */
+    fun parse(content: String): List<ParsedM3uEntry> = parse(content.lineSequence())
+
+    /**
+     * Parses [lines] lazily so callers can feed a [Sequence] backed by a [java.io.BufferedReader]
+     * instead of materializing the whole playlist (which can be tens of MB) as a single [String]
+     * plus a duplicate line-by-line copy at the same time.
+     */
+    fun parse(lines: Sequence<String>): List<ParsedM3uEntry> {
         val entries = mutableListOf<ParsedM3uEntry>()
-        val lines = content.split("\r\n", "\n", "\r")
 
         var pendingName: String? = null
         var pendingLogo: String? = null

@@ -22,6 +22,7 @@
         android:theme="@style/Theme.IptvTvPlayer"
         android:usesCleartextTraffic="true"
         android:hardwareAccelerated="true"
+        android:largeHeap="true"
         tools:targetApi="34">
 
         <activity

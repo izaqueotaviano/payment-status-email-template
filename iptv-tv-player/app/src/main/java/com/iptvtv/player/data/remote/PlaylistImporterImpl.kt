@@ -42,21 +42,26 @@ class PlaylistImporterImpl(
 
     private fun fetchFromM3uUrl(source: Source.M3uUrlSource): List<Channel> {
         val request = Request.Builder().url(source.url).build()
-        val body = okHttpClient.newCall(request).execute().use { response ->
+        val entries = okHttpClient.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 throw IOException("Failed to fetch playlist: HTTP ${response.code}")
             }
-            response.body?.string() ?: throw IOException("Empty playlist response")
+            val body = response.body ?: throw IOException("Empty playlist response")
+            // Stream the response instead of body.string(): some IPTV providers serve
+            // playlists tens of MB long, and buffering the whole thing into one String
+            // (then splitting it into a second, equally large copy) can exhaust the
+            // ~192MB default heap on TV devices.
+            body.charStream().useLines { lines -> M3uParser.parse(lines) }
         }
-        return M3uParser.parse(body).toChannels(source.id)
+        return entries.toChannels(source.id)
     }
 
     private fun fetchFromLocalFile(source: Source.LocalFileSource): List<Channel> {
         val uri = Uri.parse(source.fileUri)
-        val content = context.contentResolver.openInputStream(uri)?.use { input ->
-            input.bufferedReader().readText()
+        val entries = context.contentResolver.openInputStream(uri)?.use { input ->
+            input.bufferedReader().useLines { lines -> M3uParser.parse(lines) }
         } ?: throw IOException("Unable to open local playlist file: ${source.fileUri}")
-        return M3uParser.parse(content).toChannels(source.id)
+        return entries.toChannels(source.id)
     }
 
     private suspend fun fetchFromXtream(source: Source.XtreamSource): List<Channel> {
