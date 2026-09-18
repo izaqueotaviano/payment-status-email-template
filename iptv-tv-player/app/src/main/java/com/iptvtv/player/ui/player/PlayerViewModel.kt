@@ -74,7 +74,9 @@ class PlayerViewModel(
     init {
         player.addListener(object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
-                _errorMessage.value = error.message
+                // A null message would be indistinguishable from "no error" and would leave the
+                // user staring at a black screen with no way to retry.
+                _errorMessage.value = error.message ?: error.errorCodeName
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {

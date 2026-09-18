@@ -1,5 +1,7 @@
 package com.iptvtv.player.ui.player
 
+import androidx.activity.compose.BackHandler
+import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
@@ -21,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -42,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import androidx.tv.material3.Text
@@ -62,10 +66,29 @@ private const val CHANNEL_OVERLAY_MS = 2500L
 private enum class PlayerPanel { Audio, Subtitles, Aspect }
 
 /** How the video is scaled into the screen. */
+@OptIn(UnstableApi::class)
 private enum class AspectMode(val label: String, val resizeMode: Int) {
     Fit("Ajustar", AspectRatioFrameLayout.RESIZE_MODE_FIT),
     Zoom("Preencher", AspectRatioFrameLayout.RESIZE_MODE_ZOOM),
     Stretch("Esticar", AspectRatioFrameLayout.RESIZE_MODE_FILL),
+}
+
+/** One row of the options panel, whatever the panel is listing. */
+private data class PanelOption(
+    val label: String,
+    val selected: Boolean,
+    val onSelect: () -> Unit,
+)
+
+/**
+ * Asks for focus more than once: a node composed on the same frame can reject the first request,
+ * and on this screen a missed request leaves the remote with nothing to drive.
+ */
+private suspend fun FocusRequester.requestFocusInsistently() {
+    repeat(5) { attempt ->
+        delay(if (attempt == 0) 60L else 120L)
+        if (runCatching { requestFocus() }.isSuccess) return
+    }
 }
 
 /**
@@ -74,7 +97,12 @@ private enum class AspectMode(val label: String, val resizeMode: Int) {
  * With the controls hidden the remote drives playback directly: left/right change channel, OK
  * (or up/down) opens the controls, back exits. With the controls open the D-pad moves between
  * them and back closes them, so the same keys never mean two things at once.
+ *
+ * Focus is always handed over explicitly. The root Box covers the whole screen, so Compose's
+ * directional search can never move focus out of it into a child - whenever what is on screen
+ * changes, the code below points focus at whatever should own the remote next.
  */
+@OptIn(UnstableApi::class)
 @Composable
 fun PlayerScreen(
     viewModel: PlayerViewModel,
@@ -83,7 +111,9 @@ fun PlayerScreen(
     onExit: () -> Unit,
 ) {
     val rootFocus = remember { FocusRequester() }
-    val playPauseFocus = remember { FocusRequester() }
+    val barFocus = remember { FocusRequester() }
+    val panelFocus = remember { FocusRequester() }
+    val retryFocus = remember { FocusRequester() }
 
     val currentChannel by viewModel.currentChannel.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
@@ -97,22 +127,22 @@ fun PlayerScreen(
     var aspectMode by remember { mutableStateOf(AspectMode.Fit) }
     var showChannelOverlay by remember { mutableStateOf(false) }
     // Bumped on every key press so the auto-hide countdown restarts while the user is busy.
-    var activityTick by remember { mutableStateOf(0) }
+    var activityTick by remember { mutableIntStateOf(0) }
+
+    val hasError = errorMessage != null
 
     LaunchedEffect(sourceId, initialChannelId) {
         viewModel.start(sourceId, initialChannelId)
     }
 
-    // Whoever is on screen owns the remote: the controls when they are open, the root otherwise.
-    LaunchedEffect(controlsVisible) {
-        if (controlsVisible) {
-            delay(80)
-            runCatching { playPauseFocus.requestFocus() }
-        } else {
-            panel = null
-            delay(50)
-            runCatching { rootFocus.requestFocus() }
+    LaunchedEffect(controlsVisible, panel, hasError) {
+        val target = when {
+            controlsVisible && panel != null -> panelFocus
+            controlsVisible -> barFocus
+            hasError -> retryFocus
+            else -> rootFocus
         }
+        target.requestFocusInsistently()
     }
 
     LaunchedEffect(controlsVisible, panel, activityTick) {
@@ -127,6 +157,17 @@ fun PlayerScreen(
             showChannelOverlay = true
             delay(CHANNEL_OVERLAY_MS)
             showChannelOverlay = false
+        }
+    }
+
+    // Back is handled here rather than as a key: newer Android versions route it through the
+    // predictive-back dispatcher instead of dispatching KEYCODE_BACK, and this also works when
+    // nothing on screen holds focus.
+    BackHandler {
+        when {
+            panel != null -> panel = null
+            controlsVisible -> controlsVisible = false
+            else -> onExit()
         }
     }
 
@@ -148,20 +189,6 @@ fun PlayerScreen(
                     return@onKeyEvent false
                 }
                 when (event.key) {
-                    Key.Back -> when {
-                        panel != null -> {
-                            panel = null
-                            true
-                        }
-                        controlsVisible -> {
-                            controlsVisible = false
-                            true
-                        }
-                        else -> {
-                            onExit()
-                            true
-                        }
-                    }
                     Key.MediaPlayPause, Key.MediaPlay, Key.MediaPause -> {
                         viewModel.togglePlayPause()
                         true
@@ -229,22 +256,41 @@ fun PlayerScreen(
             )
         }
 
-        if (controlsVisible) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(listOf(Color.Transparent, Color(0xF2080610))),
-                    )
-                    .padding(horizontal = 32.dp, vertical = 26.dp),
-            ) {
+        // Everything that can appear at the bottom lives in one stack so an error card and an
+        // options panel can never end up drawn on top of each other.
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .then(
+                    if (controlsVisible) {
+                        Modifier.background(
+                            Brush.verticalGradient(listOf(Color.Transparent, Color(0xF2080610))),
+                        )
+                    } else {
+                        Modifier
+                    },
+                )
+                .padding(horizontal = 32.dp, vertical = 26.dp),
+        ) {
+            val error = errorMessage
+            if (error != null) {
+                ErrorCard(
+                    message = error,
+                    onRetry = { viewModel.retry() },
+                    retryModifier = Modifier.focusRequester(retryFocus),
+                )
+            }
+
+            if (controlsVisible) {
                 panel?.let { openPanel ->
                     OptionsPanel(
                         panel = openPanel,
                         audioTracks = audioTracks,
                         subtitleTracks = subtitleTracks,
                         aspectMode = aspectMode,
+                        focusRequester = panelFocus,
                         onSelectAudio = { id ->
                             viewModel.selectAudioTrack(id)
                             panel = null
@@ -257,6 +303,7 @@ fun PlayerScreen(
                             aspectMode = mode
                             panel = null
                         },
+                        modifier = Modifier.align(Alignment.Start).padding(top = 14.dp),
                     )
                 }
 
@@ -269,22 +316,20 @@ fun PlayerScreen(
                         text = if (isPlaying) "Pausar" else "Reproduzir",
                         onClick = { viewModel.togglePlayPause() },
                         primary = true,
-                        modifier = Modifier.focusRequester(playPauseFocus),
+                        modifier = Modifier.focusRequester(barFocus),
                     )
                     PillButton(text = "Canal anterior", onClick = { viewModel.previous() })
                     PillButton(text = "Próximo canal", onClick = { viewModel.next() })
-                    if (audioTracks.size > 1) {
-                        PillButton(
-                            text = "Áudio",
-                            onClick = { panel = if (panel == PlayerPanel.Audio) null else PlayerPanel.Audio },
-                        )
-                    }
-                    if (subtitleTracks.isNotEmpty()) {
-                        PillButton(
-                            text = "Legendas",
-                            onClick = { panel = if (panel == PlayerPanel.Subtitles) null else PlayerPanel.Subtitles },
-                        )
-                    }
+                    // These stay mounted even with nothing to choose: a button that disappears
+                    // under the focus takes the remote down with it.
+                    PillButton(
+                        text = "Áudio",
+                        onClick = { panel = if (panel == PlayerPanel.Audio) null else PlayerPanel.Audio },
+                    )
+                    PillButton(
+                        text = "Legendas",
+                        onClick = { panel = if (panel == PlayerPanel.Subtitles) null else PlayerPanel.Subtitles },
+                    )
                     PillButton(
                         text = "Proporção",
                         onClick = { panel = if (panel == PlayerPanel.Aspect) null else PlayerPanel.Aspect },
@@ -296,39 +341,41 @@ fun PlayerScreen(
                     text = "OK abre os controles · Esquerda/direita troca de canal · Voltar sai",
                     color = BrandMuted,
                     fontSize = 11.sp,
-                    modifier = Modifier.padding(top = 10.dp),
+                    modifier = Modifier.align(Alignment.Start).padding(top = 10.dp),
                 )
             }
         }
+    }
+}
 
-        val error = errorMessage
-        if (error != null) {
-            val shape = RoundedCornerShape(16.dp)
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = if (controlsVisible) 190.dp else 40.dp)
-                    .wrapContentSize()
-                    .background(Color(0xE61A0E14), shape)
-                    .border(1.dp, BrandError.copy(alpha = 0.5f), shape)
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-            ) {
-                Text(
-                    text = "Não foi possível reproduzir: $error",
-                    color = BrandError,
-                    fontSize = 13.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.width(420.dp),
-                )
-                PillButton(
-                    text = "Tentar novamente",
-                    onClick = { viewModel.retry() },
-                    modifier = Modifier.padding(top = 10.dp),
-                )
-            }
-        }
+@Composable
+private fun ErrorCard(
+    message: String,
+    onRetry: () -> Unit,
+    retryModifier: Modifier,
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .wrapContentSize()
+            .background(Color(0xE61A0E14), shape)
+            .border(1.dp, BrandError.copy(alpha = 0.5f), shape)
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+    ) {
+        Text(
+            text = "Não foi possível reproduzir: $message",
+            color = BrandError,
+            fontSize = 13.sp,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.width(420.dp),
+        )
+        PillButton(
+            text = "Tentar novamente",
+            onClick = onRetry,
+            modifier = retryModifier.padding(top = 10.dp),
+        )
     }
 }
 
@@ -406,20 +453,35 @@ private fun OptionsPanel(
     audioTracks: List<TrackOption>,
     subtitleTracks: List<TrackOption>,
     aspectMode: AspectMode,
+    focusRequester: FocusRequester,
     onSelectAudio: (String) -> Unit,
     onSelectSubtitle: (String) -> Unit,
     onSelectAspect: (AspectMode) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(18.dp)
     val title = when (panel) {
-        PlayerPanel.Audio -> "Áudio"
-        PlayerPanel.Subtitles -> "Legendas"
-        PlayerPanel.Aspect -> "Proporção da imagem"
+        PlayerPanel.Audio -> "ÁUDIO"
+        PlayerPanel.Subtitles -> "LEGENDAS"
+        PlayerPanel.Aspect -> "PROPORÇÃO DA IMAGEM"
     }
+    val options = when (panel) {
+        PlayerPanel.Audio -> audioTracks.map { track ->
+            PanelOption(track.label, track.isSelected) { onSelectAudio(track.id) }
+        }
+        PlayerPanel.Subtitles -> subtitleTracks.map { track ->
+            PanelOption(track.label, track.isSelected) { onSelectSubtitle(track.id) }
+        }
+        PlayerPanel.Aspect -> AspectMode.entries.map { mode ->
+            PanelOption(mode.label, mode == aspectMode) { onSelectAspect(mode) }
+        }
+    }
+    // Focus lands on what is currently active, so the list opens where the user left it.
+    val focusIndex = options.indexOfFirst { it.selected }.coerceAtLeast(0)
 
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier
+        modifier = modifier
             .width(360.dp)
             .heightIn(max = 300.dp)
             .background(Color(0xF216141F), shape)
@@ -429,29 +491,23 @@ private fun OptionsPanel(
     ) {
         Text(text = title, color = BrandMuted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
 
-        when (panel) {
-            PlayerPanel.Audio -> audioTracks.forEach { option ->
+        if (options.isEmpty()) {
+            Text(
+                text = "Este canal não oferece opções aqui.",
+                color = BrandOnSurface,
+                fontSize = 14.sp,
+            )
+        } else {
+            options.forEachIndexed { index, option ->
                 PillButton(
                     text = option.label,
-                    onClick = { onSelectAudio(option.id) },
-                    primary = option.isSelected,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            PlayerPanel.Subtitles -> subtitleTracks.forEach { option ->
-                PillButton(
-                    text = option.label,
-                    onClick = { onSelectSubtitle(option.id) },
-                    primary = option.isSelected,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            PlayerPanel.Aspect -> AspectMode.entries.forEach { mode ->
-                PillButton(
-                    text = mode.label,
-                    onClick = { onSelectAspect(mode) },
-                    primary = mode == aspectMode,
-                    modifier = Modifier.fillMaxWidth(),
+                    onClick = option.onSelect,
+                    primary = option.selected,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (index == focusIndex) Modifier.focusRequester(focusRequester) else Modifier,
+                        ),
                 )
             }
         }
