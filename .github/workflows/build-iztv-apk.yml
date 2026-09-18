@@ -48,8 +48,8 @@ jobs:
           ; do
             echo "=== $coord ==="
             meta="$(curl -s "https://dl.google.com/dl/android/maven2/$coord/maven-metadata.xml")"
-            echo "$meta" | grep -oE '<release>[^<]+</release>|<latest>[^<]+</latest>'
-            echo "$meta" | grep -oE '<version>[^<]+</version>' | tail -5
+            echo "$meta" | grep -oE '<release>[^<]+</release>|<latest>[^<]+</latest>' || true
+            echo "$meta" | grep -oE '<version>[^<]+</version>' | tail -5 || true
           done
 
       - name: Validate Gradle wrapper
