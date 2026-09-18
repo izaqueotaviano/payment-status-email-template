@@ -10,12 +10,12 @@ plugins {
 
 android {
     namespace = "com.iptvtv.player"
-    compileSdk = 34
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.iptvtv.player"
         minSdk = 21
-        targetSdk = 34
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0.0"
     }

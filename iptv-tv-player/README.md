@@ -12,7 +12,7 @@ sideload (não requer Google Play / loja). Controle 100% pelo D-pad do controle 
 - DataStore Preferences para configurações (fonte ativa, canal padrão)
 - Retrofit/OkHttp + kotlinx.serialization para a API Xtream Codes e download de playlists M3U
 - Storage Access Framework para importar um arquivo M3U local
-- `minSdk 21`, `compileSdk`/`targetSdk 34`
+- `minSdk 21`, `compileSdk`/`targetSdk 37`
 
 ## Funcionalidades
 
@@ -60,7 +60,7 @@ Este projeto foi gerado e revisado num ambiente sem acesso ao Android SDK nem ao
 aqui**. O código foi escrito e revisado com bastante cuidado (ver abaixo), mas rode e compile num ambiente
 com Android SDK antes de usar em produção.
 
-Pré-requisitos: JDK 17+ e Android SDK (`compileSdk 34`, `build-tools` correspondente) — o mais simples é
+Pré-requisitos: JDK 17+ e Android SDK (`compileSdk 37`, `build-tools` correspondente) — o mais simples é
 abrir a pasta `iptv-tv-player/` no Android Studio recente e deixar ele instalar o que faltar, ou exportar
 `ANDROID_HOME`/`ANDROID_SDK_ROOT` manualmente.
 
@@ -101,20 +101,29 @@ adb install -r app/build/outputs/apk/release/app-release.apk
 Ou copie o APK para um pendrive/rede e instale pelo gerenciador de arquivos do Fire TV/Android TV
 (ative "Fontes desconhecidas" nas configurações do aparelho antes).
 
+## Build automático (GitHub Actions) e instalação por URL
+
+O workflow `.github/workflows/build-iztv-apk.yml` compila o APK de release num runner do GitHub (que
+tem acesso normal à internet, ao contrário desta sandbox) a cada push nesta branch, e publica o
+resultado como um GitHub Release fixo chamado `iztv-latest`. Isso dá uma URL estável para instalar pelo
+app **Downloader** no Android TV / Fire TV / Google TV:
+
+```
+https://github.com/<owner>/<repo>/releases/download/iztv-latest/iztv.apk
+```
+
+(o repositório precisa estar público para essa URL funcionar sem login).
+
 ## Sobre as versões das bibliotecas
 
-Todas as versões estão fixadas em `gradle/libs.versions.toml`. As de bibliotecas que não passam pelo
-Google Maven (Kotlin, Retrofit, OkHttp, Coil, KSP) foram conferidas ao vivo contra o repositório Maven
-Central no momento em que este projeto foi gerado. As do Google Maven (AndroidX, Compose, Media3, Room,
-DataStore, Navigation, `androidx.tv`) **não puderam ser conferidas ao vivo** (rede bloqueada nesta
-sandbox) — foram fixadas em versões estáveis conhecidas e coerentes entre si. Antes de compilar, vale a
-pena:
-
-- Abrir o projeto no Android Studio e rodar o "Upgrade Assistant" / aceitar sugestões do editor de
-  versão do catálogo, especialmente para `androidx.tv:tv-foundation` / `androidx.tv:tv-material`
-  (ainda em alpha — a API pode ter mudado desde então: <https://developer.android.com/jetpack/androidx/releases/tv>).
-- Rodar `./gradlew build --refresh-dependencies` para pegar qualquer patch novo dentro da mesma versão
-  menor.
+Todas as versões estão fixadas em `gradle/libs.versions.toml` e foram conferidas ao vivo — as de
+Kotlin/Retrofit/OkHttp/Coil/KSP contra o Maven Central, e as do Google Maven (AndroidX, Compose, Media3,
+Room, DataStore, Navigation, `androidx.tv`, AGP) usando o próprio runner do GitHub Actions (via um passo
+de diagnóstico no workflow acima), já que esta sandbox de desenvolvimento não tem acesso a
+`dl.google.com`/`maven.google.com`. AGP está na série 9.x, pareado com o wrapper do Gradle 9.7.1 e
+`compileSdk`/`targetSdk 37` — versões recentes exigem isso (por exemplo `androidx.navigation:navigation-compose`
+2.10.1 exige AGP 9.1+ e compilar contra a API 37). Se uma versão ficar desatualizada com o tempo, rode
+`./gradlew build --refresh-dependencies` ou deixe o Android Studio sugerir upgrades.
 
 ## Testando no dia a dia
 
