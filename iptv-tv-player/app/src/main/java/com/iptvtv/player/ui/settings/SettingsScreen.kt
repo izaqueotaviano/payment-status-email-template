@@ -38,6 +38,7 @@ fun SettingsScreen(
     val defaultChannelName by viewModel.defaultChannelName.collectAsState()
     val isClearingCache by viewModel.isClearingCache.collectAsState()
     val lastCrash by viewModel.lastCrash.collectAsState()
+    val liveOnlyImport by viewModel.liveOnlyImport.collectAsState()
 
     AppBackground {
         Column(
@@ -73,6 +74,34 @@ fun SettingsScreen(
                         primary = true,
                         modifier = Modifier.padding(top = 14.dp),
                     )
+                }
+            }
+
+            SectionCard(modifier = Modifier.width(760.dp)) {
+                Column {
+                    SettingsHeading(
+                        title = "O que importar",
+                        subtitle = "Listas Xtream trazem filmes e séries junto com os canais ao vivo",
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
+                    ) {
+                        Text(
+                            text = if (liveOnlyImport) {
+                                "Importando apenas canais ao vivo"
+                            } else {
+                                "Importando a lista inteira, incluindo filmes e séries"
+                            },
+                            color = BrandOnSurface,
+                            fontSize = 16.sp,
+                            modifier = Modifier.weight(1f),
+                        )
+                        PillButton(
+                            text = if (liveOnlyImport) "Incluir filmes/séries" else "Só ao vivo",
+                            onClick = { viewModel.setLiveOnlyImport(!liveOnlyImport) },
+                        )
+                    }
                 }
             }
 

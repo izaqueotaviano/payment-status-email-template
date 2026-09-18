@@ -32,7 +32,9 @@ class AppContainer(context: Context) {
     }
     val settingsRepository: SettingsRepository by lazy { SettingsRepositoryImpl(appContext) }
     private val playlistImporter: PlaylistImporter by lazy { PlaylistImporterImpl(appContext, okHttpClient) }
-    val syncSourceUseCase: SyncSourceUseCase by lazy { SyncSourceUseCase(playlistImporter, channelRepository) }
+    val syncSourceUseCase: SyncSourceUseCase by lazy {
+        SyncSourceUseCase(playlistImporter, channelRepository, settingsRepository)
+    }
     val cacheManager: CacheManager by lazy { CacheManager(appContext, okHttpClient) }
     val crashReporter: CrashReporter by lazy { CrashReporter(appContext) }
 }

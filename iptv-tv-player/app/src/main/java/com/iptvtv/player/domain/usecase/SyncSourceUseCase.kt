@@ -2,18 +2,22 @@ package com.iptvtv.player.domain.usecase
 
 import com.iptvtv.player.domain.model.Source
 import com.iptvtv.player.domain.repository.ChannelRepository
+import com.iptvtv.player.domain.repository.SettingsRepository
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.first
 
 /**
  * Real progress of an import.
  *
  * [bytesRead] and [channels] are counted as they happen; [totalBytes] is what the server declared
  * and is 0 when it declared nothing, in which case there is no percentage to show honestly.
+ * [skippedVod] counts the films and episodes the live-only filter dropped.
  */
 data class SyncProgress(
     val bytesRead: Long = 0,
     val totalBytes: Long = 0,
     val channels: Int = 0,
+    val skippedVod: Int = 0,
     val finishing: Boolean = false,
 ) {
     /** 0f..1f when the total is known, null otherwise. */
@@ -23,7 +27,8 @@ data class SyncProgress(
     val label: String
         get() = when {
             finishing -> "Concluindo..."
-            channels == 0 -> "Baixando a lista..."
+            channels == 0 && skippedVod == 0 -> "Baixando a lista..."
+            skippedVod > 0 -> "$channels canais · $skippedVod filmes/séries ignorados"
             else -> "$channels canais"
         }
 }
@@ -32,6 +37,7 @@ data class SyncProgress(
 class SyncSourceUseCase(
     private val importer: PlaylistImporter,
     private val channelRepository: ChannelRepository,
+    private val settingsRepository: SettingsRepository,
 ) {
     /**
      * Reports progress through [onProgress] and returns how many channels the source now has.
@@ -47,12 +53,18 @@ class SyncSourceUseCase(
         onProgress(progress)
 
         return try {
+            val liveOnly = settingsRepository.observeLiveOnlyImport().first()
             val stamp = channelRepository.beginSync(source.id)
 
             val importResult = importer.fetchChannels(
                 source = source,
+                liveOnly = liveOnly,
                 onBytes = { bytesRead, totalBytes ->
                     progress = progress.copy(bytesRead = bytesRead, totalBytes = totalBytes)
+                    onProgress(progress)
+                },
+                onSkipped = { skipped ->
+                    progress = progress.copy(skippedVod = skipped)
                     onProgress(progress)
                 },
                 onBatch = { batch ->

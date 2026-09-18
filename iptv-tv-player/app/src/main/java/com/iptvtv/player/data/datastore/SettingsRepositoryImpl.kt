@@ -1,6 +1,7 @@
 package com.iptvtv.player.data.datastore
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -12,6 +13,7 @@ private val Context.dataStore by preferencesDataStore(name = "settings")
 
 private val ACTIVE_SOURCE_ID = longPreferencesKey("active_source_id")
 private val DEFAULT_CHANNEL_ID = longPreferencesKey("default_channel_id")
+private val LIVE_ONLY_IMPORT = booleanPreferencesKey("live_only_import")
 
 class SettingsRepositoryImpl(private val context: Context) : SettingsRepository {
 
@@ -39,5 +41,12 @@ class SettingsRepositoryImpl(private val context: Context) : SettingsRepository 
                 prefs[DEFAULT_CHANNEL_ID] = id
             }
         }
+    }
+
+    override fun observeLiveOnlyImport(): Flow<Boolean> =
+        context.dataStore.data.map { it[LIVE_ONLY_IMPORT] ?: true }
+
+    override suspend fun setLiveOnlyImport(liveOnly: Boolean) {
+        context.dataStore.edit { prefs -> prefs[LIVE_ONLY_IMPORT] = liveOnly }
     }
 }

@@ -17,12 +17,18 @@ import com.iptvtv.player.domain.model.Source
  */
 interface PlaylistImporter {
     /**
+     * [liveOnly] drops films and series episodes, which an Xtream "m3u_plus" playlist carries
+     * alongside the live channels and which usually outnumber them many times over.
+     *
      * [onBytes] receives how much of the playlist has been read and how much the server declared
-     * in total (0 when it declared nothing), so callers can show measured progress.
+     * in total (0 when it declared nothing), so callers can show measured progress; [onSkipped]
+     * receives how many entries the [liveOnly] filter dropped so far.
      */
     suspend fun fetchChannels(
         source: Source,
+        liveOnly: Boolean = true,
         onBytes: (bytesRead: Long, totalBytes: Long) -> Unit = { _, _ -> },
+        onSkipped: (Int) -> Unit = {},
         onBatch: suspend (List<Channel>) -> Unit,
     ): Result<Int>
 }

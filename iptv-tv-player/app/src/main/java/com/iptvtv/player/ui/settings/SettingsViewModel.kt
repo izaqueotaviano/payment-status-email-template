@@ -42,6 +42,13 @@ class SettingsViewModel(
     private val _isClearingCache = MutableStateFlow(false)
     val isClearingCache: StateFlow<Boolean> = _isClearingCache
 
+    val liveOnlyImport: StateFlow<Boolean> = settingsRepository.observeLiveOnlyImport()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    fun setLiveOnlyImport(liveOnly: Boolean) {
+        viewModelScope.launch { settingsRepository.setLiveOnlyImport(liveOnly) }
+    }
+
     fun clearDefaultChannel() {
         viewModelScope.launch {
             settingsRepository.setDefaultChannelId(null)
