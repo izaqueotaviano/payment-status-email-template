@@ -21,9 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
-import androidx.tv.foundation.lazy.list.TvLazyColumn
-import androidx.tv.foundation.lazy.list.TvLazyRow
-import androidx.tv.foundation.lazy.list.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.tv.material3.Button
 import androidx.tv.material3.Text
 import com.iptvtv.player.domain.model.Channel
@@ -100,13 +100,13 @@ fun ChannelListScreen(
                 Text(text = "Nenhum canal visivel. Importe uma fonte ou remova os filtros.")
             }
         } else {
-            TvLazyColumn(modifier = Modifier.fillMaxSize().padding(top = 16.dp)) {
+            LazyColumn(modifier = Modifier.fillMaxSize().padding(top = 16.dp)) {
                 groupedChannels.forEach { (group, channelsInGroup) ->
                     item(key = "header_$group") {
                         Text(text = group, modifier = Modifier.padding(vertical = 8.dp))
                     }
                     item(key = "row_$group") {
-                        TvLazyRow {
+                        LazyRow {
                             items(channelsInGroup, key = { ch: Channel -> ch.id }) { ch: Channel ->
                                 ChannelCard(
                                     channel = ch,

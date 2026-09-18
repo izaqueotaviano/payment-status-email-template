@@ -15,8 +15,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.tv.foundation.lazy.list.TvLazyColumn
-import androidx.tv.foundation.lazy.list.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.tv.material3.Button
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
@@ -80,7 +80,7 @@ fun SourcesScreen(
                     Text(text = "Adicione uma lista M3U, uma conta Xtream Codes ou importe um arquivo local para começar.")
                 }
             } else {
-                TvLazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(sources, key = { source: Source -> source.id }) { source: Source ->
                         val isActive = activeSourceId == source.id
                         Surface(
