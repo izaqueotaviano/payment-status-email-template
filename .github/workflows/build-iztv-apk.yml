@@ -47,8 +47,9 @@ jobs:
             "com/android/tools/build/gradle" \
           ; do
             echo "=== $coord ==="
-            curl -s "https://dl.google.com/dl/android/maven2/$coord/maven-metadata.xml" || true
-            echo
+            meta="$(curl -s "https://dl.google.com/dl/android/maven2/$coord/maven-metadata.xml")"
+            echo "$meta" | grep -oE '<release>[^<]+</release>|<latest>[^<]+</latest>'
+            echo "$meta" | grep -oE '<version>[^<]+</version>' | tail -5
           done
 
       - name: Validate Gradle wrapper
