@@ -90,15 +90,16 @@ fun ChannelListScreen(
     var showManageDialog by remember { mutableStateOf(false) }
     var previewChannelId by remember { mutableStateOf<Long?>(null) }
 
-    // Only fall back to the first channel before anything has been previewed. Falling back
-    // afterwards would silently re-point the panel at another channel when the previewed one
-    // leaves the list (unfavoriting it under the "Favoritos" filter), so the buttons would act
-    // on a channel the user never selected.
-    val previewChannel = if (previewChannelId == null) {
-        channels.firstOrNull()
-    } else {
-        channels.firstOrNull { it.id == previewChannelId }
+    // The previewed channel can leave the list under the user (unfavoriting it while the
+    // "Favoritos" filter is on). Re-anchoring the id keeps the panel mounted - letting it vanish
+    // would take the focus owner with it - and keeps what the buttons act on equal to what is
+    // drawn, instead of silently re-pointing at another channel.
+    LaunchedEffect(channels, previewChannelId) {
+        if (previewChannelId != null && channels.none { it.id == previewChannelId }) {
+            previewChannelId = channels.firstOrNull()?.id
+        }
     }
+    val previewChannel = channels.firstOrNull { it.id == previewChannelId } ?: channels.firstOrNull()
     val liveDialogChannel = dialogChannel?.let { stored ->
         allChannels.firstOrNull { it.id == stored.id } ?: stored
     }
@@ -124,9 +125,11 @@ fun ChannelListScreen(
             runCatching { rowFocus.requestFocus() }
         }
     }
-    // An empty list removes every focusable in the main area, so hand focus to its action.
-    LaunchedEffect(channels.isEmpty()) {
-        if (channels.isEmpty()) {
+    // An empty list removes every focusable in the main area, so hand focus to its action - but
+    // never while the user is typing, or a search that momentarily matches nothing would pull
+    // the focus out of the field and close the keyboard mid-word.
+    LaunchedEffect(channels.isEmpty(), query.isBlank()) {
+        if (channels.isEmpty() && query.isBlank()) {
             delay(150)
             runCatching { emptyStateFocus.requestFocus() }
         }
@@ -384,6 +387,7 @@ private fun EmptyState(
                 text = if (hasFilters) "Limpar filtros" else "Atualizar agora",
                 onClick = if (hasFilters) onClearFilters else onRefresh,
                 primary = true,
+                enabled = hasFilters || !isRefreshing,
                 modifier = actionModifier.padding(top = 16.dp),
             )
         }

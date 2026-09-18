@@ -7,13 +7,17 @@ import com.iptvtv.player.domain.repository.ChannelRepository
 import com.iptvtv.player.domain.repository.SettingsRepository
 import com.iptvtv.player.domain.repository.SourceRepository
 import com.iptvtv.player.domain.usecase.SyncSourceUseCase
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -58,6 +62,7 @@ class ChannelListViewModel(
 
     val groups: StateFlow<List<String>> = allChannels
         .map { channels -> channels.filterNot { it.isHidden }.map { it.displayGroup }.distinct().sorted() }
+        .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val visibleChannels: StateFlow<List<Channel>> = combine(
@@ -78,7 +83,11 @@ class ChannelListViewModel(
             visible = visible.filter { it.displayName.contains(query, ignoreCase = true) }
         }
         visible.sortedBy { it.sortOrder }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    }
+        // Filtering and sorting a playlist of tens of thousands of channels runs on every
+        // keystroke; it does not belong on the main thread.
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val isRefreshingFlow = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = isRefreshingFlow
@@ -86,15 +95,27 @@ class ChannelListViewModel(
     private val syncErrorFlow = MutableStateFlow<String?>(null)
     val syncError: StateFlow<String?> = syncErrorFlow
 
+    private var refreshJob: Job? = null
+
     fun refresh() {
         val sourceId = currentSourceId.value ?: return
-        viewModelScope.launch {
+        // Two imports of the same source race each other: both read the same "before" snapshot
+        // and both insert the whole playlist, duplicating every channel for good.
+        if (refreshJob?.isActive == true) return
+        refreshJob = viewModelScope.launch {
             isRefreshingFlow.value = true
             syncErrorFlow.value = null
-            val source = sourceRepository.getSource(sourceId)
-            val result = if (source != null) syncSourceUseCase(source) else Result.success(Unit)
-            syncErrorFlow.value = result.exceptionOrNull()?.message
-            isRefreshingFlow.value = false
+            try {
+                val source = sourceRepository.getSource(sourceId)
+                val result = if (source != null) syncSourceUseCase(source) else Result.success(Unit)
+                syncErrorFlow.value = result.exceptionOrNull()?.message
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Throwable) {
+                syncErrorFlow.value = error.message ?: "Falha ao sincronizar"
+            } finally {
+                isRefreshingFlow.value = false
+            }
         }
     }
 
@@ -141,16 +162,17 @@ class ChannelListViewModel(
         viewModelScope.launch { move(c, 1) }
     }
 
+    /**
+     * Moves [channel] past its neighbour in the list the user is actually looking at - reordering
+     * against the unfiltered list would look like nothing happened while silently shuffling
+     * channels off screen.
+     */
     private suspend fun move(channel: Channel, deltaIndex: Int) {
-        val sorted = allChannels.value.sortedBy { it.sortOrder }
-        val index = sorted.indexOfFirst { it.id == channel.id }
+        val ordered = visibleChannels.value
+        val index = ordered.indexOfFirst { it.id == channel.id }
         if (index == -1) return
         val neighborIndex = index + deltaIndex
-        if (neighborIndex !in sorted.indices) return
-        val reordered = sorted.toMutableList()
-        val tmp = reordered[index]
-        reordered[index] = reordered[neighborIndex]
-        reordered[neighborIndex] = tmp
-        channelRepository.reorder(reordered.map { it.id })
+        if (neighborIndex !in ordered.indices) return
+        channelRepository.swapOrder(channel.id, ordered[neighborIndex].id)
     }
 }

@@ -3,19 +3,19 @@ package com.iptvtv.player.ui.sources
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.iptvtv.player.domain.model.Source
+import com.iptvtv.player.domain.repository.ChannelRepository
 import com.iptvtv.player.domain.repository.SettingsRepository
 import com.iptvtv.player.domain.repository.SourceRepository
-import com.iptvtv.player.domain.usecase.SyncSourceUseCase
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class SourcesViewModel(
     private val sourceRepository: SourceRepository,
     private val settingsRepository: SettingsRepository,
-    private val syncSourceUseCase: SyncSourceUseCase,
+    private val channelRepository: ChannelRepository,
 ) : ViewModel() {
 
     val sources: StateFlow<List<Source>> = sourceRepository.observeSources()
@@ -33,8 +33,21 @@ class SourcesViewModel(
         }
     }
 
+    /**
+     * Deletes a source along with everything that points at it. There is no foreign key on the
+     * channels table, so its rows would otherwise be orphaned, and the stored active source and
+     * default channel would keep sending the app back to a source that no longer exists.
+     */
     fun deleteSource(id: Long) {
         viewModelScope.launch {
+            val defaultChannelId = settingsRepository.observeDefaultChannelId().first()
+            if (defaultChannelId != null && channelRepository.getChannel(defaultChannelId)?.sourceId == id) {
+                settingsRepository.setDefaultChannelId(null)
+            }
+            if (settingsRepository.observeActiveSourceId().first() == id) {
+                settingsRepository.setActiveSourceId(null)
+            }
+            channelRepository.deleteChannelsForSource(id)
             sourceRepository.deleteSource(id)
         }
     }

@@ -17,7 +17,7 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
             SourcesViewModel::class.java -> SourcesViewModel(
                 container.sourceRepository,
                 container.settingsRepository,
-                container.syncSourceUseCase,
+                container.channelRepository,
             )
             AddEditSourceViewModel::class.java -> AddEditSourceViewModel(
                 container.sourceRepository,

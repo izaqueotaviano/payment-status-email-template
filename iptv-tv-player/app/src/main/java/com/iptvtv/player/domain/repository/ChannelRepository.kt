@@ -17,6 +17,9 @@ interface ChannelRepository {
      * displayName, displayGroup and sortOrder are preserved from the existing row. Channels
      * with no match are appended (sortOrder continues after the current max). Existing rows
      * whose streamKey is absent from [freshChannels] are deleted.
+     *
+     * Throws if [freshChannels] is empty rather than deleting everything, and applies the whole
+     * merge in a single transaction.
      */
     suspend fun replaceChannelsForSource(sourceId: Long, freshChannels: List<Channel>)
 
@@ -34,8 +37,11 @@ interface ChannelRepository {
     suspend fun rename(channelId: Long, newName: String)
     suspend fun regroup(channelId: Long, newGroup: String)
 
-    /** Sets sortOrder = index for each id in [orderedChannelIds] (must all belong to the same source). */
-    suspend fun reorder(orderedChannelIds: List<Long>)
+    /**
+     * Exchanges the sortOrder of two channels - the whole of what moving a channel up or down
+     * needs, instead of renumbering every row of the source.
+     */
+    suspend fun swapOrder(firstChannelId: Long, secondChannelId: Long)
 
     suspend fun deleteChannelsForSource(sourceId: Long)
 }

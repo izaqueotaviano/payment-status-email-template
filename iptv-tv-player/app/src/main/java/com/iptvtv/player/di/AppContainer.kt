@@ -26,7 +26,9 @@ class AppContainer(context: Context) {
     private val okHttpClient: OkHttpClient by lazy { NetworkModule.provideOkHttpClient(appContext) }
 
     val sourceRepository: SourceRepository by lazy { SourceRepositoryImpl(database.sourceDao()) }
-    val channelRepository: ChannelRepository by lazy { ChannelRepositoryImpl(database.channelDao()) }
+    val channelRepository: ChannelRepository by lazy {
+        ChannelRepositoryImpl(database, database.channelDao())
+    }
     val settingsRepository: SettingsRepository by lazy { SettingsRepositoryImpl(appContext) }
     private val playlistImporter: PlaylistImporter by lazy { PlaylistImporterImpl(appContext, okHttpClient) }
     val syncSourceUseCase: SyncSourceUseCase by lazy { SyncSourceUseCase(playlistImporter, channelRepository) }
