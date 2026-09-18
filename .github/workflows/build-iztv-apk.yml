@@ -28,8 +28,24 @@ jobs:
 
       - name: Ensure required Android SDK packages
         run: |
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37" "build-tools;37.0.0"
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          echo "=== available platforms ==="
+          "$SDKMANAGER" --list 2>/dev/null | grep -oE 'platforms;android-[0-9]+' | sort -t- -k2 -n -u || true
+          echo "=== available build-tools ==="
+          "$SDKMANAGER" --list 2>/dev/null | grep -oE 'build-tools;[0-9.]+' | sort -t';' -k2 -V -u || true
+          LATEST_PLATFORM="$("$SDKMANAGER" --list 2>/dev/null | grep -oE 'platforms;android-[0-9]+' | sort -t- -k2 -n -u | tail -1)"
+          LATEST_BUILD_TOOLS="$("$SDKMANAGER" --list 2>/dev/null | grep -oE 'build-tools;[0-9.]+' | sort -t';' -k2 -V -u | tail -1)"
+          echo "Installing $LATEST_PLATFORM and $LATEST_BUILD_TOOLS"
+          "$SDKMANAGER" "$LATEST_PLATFORM" "$LATEST_BUILD_TOOLS"
+          echo "ANDROID_COMPILE_SDK=${LATEST_PLATFORM#platforms;android-}" >> "$GITHUB_ENV"
+
+      - name: Match compileSdk/targetSdk to the installed platform
+        working-directory: iptv-tv-player
+        run: |
+          sed -i "s/compileSdk = [0-9]\+/compileSdk = ${ANDROID_COMPILE_SDK}/" app/build.gradle.kts
+          sed -i "s/targetSdk = [0-9]\+/targetSdk = ${ANDROID_COMPILE_SDK}/" app/build.gradle.kts
+          grep -E "compileSdk|targetSdk" app/build.gradle.kts
 
       - name: Print current Google Maven versions (diagnostic)
         run: |
