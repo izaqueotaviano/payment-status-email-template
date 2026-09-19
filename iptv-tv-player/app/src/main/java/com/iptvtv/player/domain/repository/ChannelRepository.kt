@@ -20,6 +20,12 @@ interface ChannelRepository {
 
     suspend fun getChannel(id: Long): Channel?
 
+    /**
+     * The channels of [sourceId] read once, in display order - what to show while an import is
+     * running, when observing the table would mean re-reading it after every batch.
+     */
+    suspend fun channelsFor(sourceId: Long): List<Channel>
+
     /** Ids of the visible channels of [sourceId], in display order. */
     fun observeVisibleChannelIds(sourceId: Long): Flow<List<Long>>
 

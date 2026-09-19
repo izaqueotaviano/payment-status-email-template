@@ -80,9 +80,13 @@ fun AppNavHost(container: AppContainer) {
                 onAddSource = { type -> navController.navigate(Routes.addSource(type)) },
                 onEditSource = { sourceId -> navController.navigate(Routes.editSource(sourceId)) },
                 onOpenChannelList = { sourceId ->
-                    // launchSingleTop so returning to a list does not stack another entry - and
-                    // with it another ChannelListViewModel that would start its own import.
-                    navController.navigate(Routes.channelList(sourceId)) { launchSingleTop = true }
+                    // Back to the existing entry when there is one. launchSingleTop alone would not
+                    // do it - it only collapses a navigation onto the entry already on top, and here
+                    // the sources screen is - so Sources -> Lista -> Sources -> Lista kept stacking
+                    // entries, each with its own ChannelListViewModel observing the whole table.
+                    if (!navController.popBackStack(Routes.channelList(sourceId), false)) {
+                        navController.navigate(Routes.channelList(sourceId))
+                    }
                 },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) { launchSingleTop = true } },
             )
@@ -117,7 +121,11 @@ fun AppNavHost(container: AppContainer) {
                 viewModel = vm,
                 sourceId = sourceId,
                 onChannelClick = { channelId -> navController.navigate(Routes.player(sourceId, channelId)) },
-                onOpenSources = { navController.navigate(Routes.SOURCES) { launchSingleTop = true } },
+                onOpenSources = {
+                    if (!navController.popBackStack(Routes.SOURCES, false)) {
+                        navController.navigate(Routes.SOURCES)
+                    }
+                },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) { launchSingleTop = true } },
             )
         }

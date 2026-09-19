@@ -46,7 +46,12 @@ class SettingsViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     fun setLiveOnlyImport(liveOnly: Boolean) {
-        viewModelScope.launch { settingsRepository.setLiveOnlyImport(liveOnly) }
+        viewModelScope.launch {
+            settingsRepository.setLiveOnlyImport(liveOnly)
+            // Otherwise the switch appears to do nothing: every source would still count as freshly
+            // imported, so no list would be re-read with the new setting for up to twelve hours.
+            sourceRepository.clearImportAttempts()
+        }
     }
 
     fun clearDefaultChannel() {

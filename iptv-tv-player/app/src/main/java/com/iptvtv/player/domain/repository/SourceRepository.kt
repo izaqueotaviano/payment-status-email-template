@@ -11,10 +11,20 @@ interface SourceRepository {
     suspend fun deleteSource(id: Long)
 
     /**
-     * When [id] was last imported successfully, as epoch millis, or 0 when it never was. The
+     * When an import of [id] was last *started*, as epoch millis, or 0 when none ever was. The
      * channel list consults this instead of re-importing the playlist on every visit.
+     *
+     * It records the attempt rather than the success on purpose: an import that is cancelled
+     * (the user leaves the screen) or fails (the provider serves an error page) would otherwise
+     * leave no trace, and every later visit would download the whole playlist again.
      */
-    suspend fun lastSyncedAt(id: Long): Long
+    suspend fun lastImportAttempt(id: Long): Long
 
-    suspend fun markSynced(id: Long, at: Long)
+    suspend fun markImportAttempt(id: Long, at: Long)
+
+    /**
+     * Makes every source stale, so the next visit re-imports. For a change that alters what an
+     * import returns - the live-only switch - rather than for anything about the sources.
+     */
+    suspend fun clearImportAttempts()
 }

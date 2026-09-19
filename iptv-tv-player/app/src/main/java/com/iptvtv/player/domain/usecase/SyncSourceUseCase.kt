@@ -87,7 +87,13 @@ class SyncSourceUseCase(
         return try {
             val liveOnly = settingsRepository.observeLiveOnlyImport().first()
             val session = channelRepository.beginSync(source.id)
-                ?: return Result.success(channelRepository.countForSource(source.id))
+                // Reporting the current count here would show "Pronto! N canais" for an import that
+                // never ran, and hide from the user that their edit has not been applied yet.
+                ?: return Result.failure(IllegalStateException("Esta lista já está sendo atualizada."))
+
+            // Stamped now, not on success: an import the user walks out of, or one the provider
+            // fails, must still count as attempted or every later visit downloads it all again.
+            runCatching { sourceRepository.markImportAttempt(source.id, System.currentTimeMillis()) }
 
             progress = progress.copy(expectedChannels = session.previousCount)
             onProgress(progress)
@@ -114,12 +120,7 @@ class SyncSourceUseCase(
                 importResult.fold(
                     onSuccess = { imported ->
                         onProgress(progress.copy(finishing = true))
-                        val count = channelRepository.finishSync(session, imported)
-                        // The channels are in. Failing the whole import over the timestamp would
-                        // tell the user it did not work and have them run it all again; the worst
-                        // an unwritten stamp costs is one more refresh later.
-                        runCatching { sourceRepository.markSynced(source.id, System.currentTimeMillis()) }
-                        Result.success(count)
+                        Result.success(channelRepository.finishSync(session, imported))
                     },
                     onFailure = { error -> Result.failure(error) },
                 )

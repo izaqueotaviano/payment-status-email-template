@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 /**
  * SQLite binds one variable per value in an `IN (...)` clause and caps them at 999 below API 31,
@@ -41,6 +42,9 @@ class ChannelRepositoryImpl(
 
     override suspend fun getChannel(id: Long): Channel? =
         dao.getById(id)?.toDomain()
+
+    override suspend fun channelsFor(sourceId: Long): List<Channel> =
+        withContext(Dispatchers.Default) { dao.getForSourceOnce(sourceId).map { it.toDomain() } }
 
     override fun observeVisibleChannelIds(sourceId: Long): Flow<List<Long>> =
         dao.observeVisibleIds(sourceId).conflate()

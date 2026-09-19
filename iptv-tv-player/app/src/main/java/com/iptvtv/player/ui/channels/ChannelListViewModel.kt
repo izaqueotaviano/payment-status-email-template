@@ -16,8 +16,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -41,8 +42,10 @@ class ChannelListViewModel(
     private val currentSourceId = MutableStateFlow<Long?>(null)
 
     fun setSource(sourceId: Long) {
-        if (currentSourceId.value == sourceId) return
         currentSourceId.value = sourceId
+        // Checked on every entry, not only when the source changes: this view model outlives a
+        // visit, so a list could otherwise never go stale for as long as the process lives.
+        // refresh() already refuses to start a second import of its own.
         viewModelScope.launch { syncIfStale(sourceId) }
     }
 
@@ -53,8 +56,10 @@ class ChannelListViewModel(
      */
     private suspend fun syncIfStale(sourceId: Long) {
         val stale = try {
-            channelRepository.countForSource(sourceId) == 0 ||
-                System.currentTimeMillis() - sourceRepository.lastSyncedAt(sourceId) > STALE_AFTER_MILLIS
+            val age = System.currentTimeMillis() - sourceRepository.lastImportAttempt(sourceId)
+            // A negative age means the clock moved backwards (or the stamp is from the future);
+            // either way the stamp tells us nothing, so treat it as stale.
+            channelRepository.countForSource(sourceId) == 0 || age !in 0 until STALE_AFTER_MILLIS
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (_: Throwable) {
@@ -68,18 +73,20 @@ class ChannelListViewModel(
     val isRefreshing: StateFlow<Boolean> = isRefreshingFlow
 
     /**
-     * Room re-runs every active query after each write, so while an import is applying its batches
-     * this query would re-read and re-map the entire table once per batch - work that grows with
-     * the square of the playlist, and the single largest reason importing crawled. Unsubscribing
-     * for the duration leaves the last known list on screen (the progress panel explains why it is
-     * not moving) and one fresh read happens when the import ends.
+     * Room re-runs every active query after each write, so observing the table through an import
+     * means re-reading and re-mapping all of it once per batch - work that grows with the square of
+     * the playlist, and the single largest reason importing crawled.
+     *
+     * So an import reads the list once and shows that, rather than observing. Simply unsubscribing
+     * was worse than either: the gate closed before the first read had delivered, so the screen sat
+     * on "nenhum canal" for the whole import while a perfectly usable list sat in the database.
      */
     val allChannels: StateFlow<List<Channel>> =
         combine(currentSourceId, isRefreshingFlow) { sourceId, refreshing -> sourceId to refreshing }
             .flatMapLatest { (sourceId, refreshing) ->
                 when {
                     sourceId == null -> flowOf(emptyList())
-                    refreshing -> emptyFlow()
+                    refreshing -> flow { emit(channelRepository.channelsFor(sourceId)) }
                     else -> channelRepository.observeChannels(sourceId)
                 }
             }
@@ -97,17 +104,10 @@ class ChannelListViewModel(
     /** Reveals hidden channels in the list so they can be restored. */
     val showHidden = MutableStateFlow(false)
 
-    val hiddenCount: StateFlow<Int> =
-        combine(currentSourceId, isRefreshingFlow) { sourceId, refreshing -> sourceId to refreshing }
-            .flatMapLatest { (sourceId, refreshing) ->
-                when {
-                    sourceId == null -> flowOf(0)
-                    // Same reason as allChannels: one more query for an import to re-run per batch.
-                    refreshing -> emptyFlow()
-                    else -> channelRepository.observeHiddenCount(sourceId)
-                }
-            }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val hiddenCount: StateFlow<Int> = currentSourceId
+        .filterNotNull()
+        .flatMapLatest { sourceId -> channelRepository.observeHiddenCount(sourceId) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     val groups: StateFlow<List<String>> = allChannels
         .map { channels -> channels.filterNot { it.isHidden }.map { it.displayGroup }.distinct().sorted() }
@@ -131,10 +131,11 @@ class ChannelListViewModel(
         if (query.isNotBlank()) {
             visible = visible.filter { it.displayName.contains(query, ignoreCase = true) }
         }
-        visible.sortedBy { it.sortOrder }
+        visible
     }
-        // Filtering and sorting a playlist of tens of thousands of channels runs on every
-        // keystroke; it does not belong on the main thread.
+        // Filtering a playlist of tens of thousands of channels runs on every keystroke; it does
+        // not belong on the main thread. Sorting is not repeated here - both queries that feed
+        // allChannels already order by sortOrder.
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

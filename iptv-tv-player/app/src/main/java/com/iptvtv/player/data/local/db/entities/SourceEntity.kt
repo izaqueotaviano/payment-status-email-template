@@ -18,8 +18,10 @@ data class SourceEntity(
     val useHttps: Boolean,
     val fileUri: String?,
     /**
-     * When this source was last imported successfully, as epoch millis; 0 when it never was.
+     * When an import of this source was last started, as epoch millis; 0 when none ever was.
      * Opening the channel list consults it instead of re-importing the whole playlist every time.
+     * It records the attempt and not the success, so an import the user walks out of, or one the
+     * provider fails, cannot make every later visit download the whole playlist again.
      */
     val lastSyncedAt: Long = 0,
 )

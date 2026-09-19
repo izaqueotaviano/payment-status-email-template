@@ -32,14 +32,34 @@ abstract class AppDatabase : RoomDatabase() {
          * Replaces the two single-column channel indices with the composites the list and the
          * import actually read by, and records when a source was last imported so opening the
          * channel list no longer has to re-import the playlist to find out.
+         *
+         * Existing sources keep lastSyncedAt = 0 deliberately: they are due one more import, the
+         * one that drops the films and series a previous version stored as channels.
          */
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE sources ADD COLUMN lastSyncedAt INTEGER NOT NULL DEFAULT 0")
 
                 // (sourceId, streamKey) becomes unique, so any duplicate a previous import left
-                // behind has to go first or the index cannot be created. The lowest id wins: it
-                // is the row the user's favorites and renames are attached to.
+                // behind has to go before the index can be created. The lowest id survives - it is
+                // the one the app has been showing - but the user's edits can be on either copy, so
+                // favorite and hidden are folded onto the survivor first.
+                db.execSQL(
+                    """
+                    UPDATE channels SET isFavorite = 1 WHERE id IN (
+                        SELECT MIN(id) FROM channels
+                        GROUP BY sourceId, streamKey HAVING MAX(isFavorite) = 1
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    UPDATE channels SET isHidden = 1 WHERE id IN (
+                        SELECT MIN(id) FROM channels
+                        GROUP BY sourceId, streamKey HAVING MIN(isHidden) = 1
+                    )
+                    """.trimIndent(),
+                )
                 db.execSQL(
                     """
                     DELETE FROM channels WHERE id NOT IN (

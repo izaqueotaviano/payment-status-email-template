@@ -27,6 +27,10 @@ interface SourceDao {
     @Query("UPDATE sources SET lastSyncedAt = :at WHERE id = :id")
     suspend fun markSynced(id: Long, at: Long)
 
+    /** Makes every source stale, for a setting that changes what an import would return. */
+    @Query("UPDATE sources SET lastSyncedAt = 0")
+    suspend fun clearSyncStamps()
+
     @Query("DELETE FROM sources WHERE id = :id")
     suspend fun deleteById(id: Long)
 }
